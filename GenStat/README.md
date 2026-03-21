@@ -227,29 +227,43 @@ If the home network is unavailable (e.g. during a power outage where the network
 | State | `@Observable` / `@State` |
 | Networking | `URLSession` async/await |
 | Backend | Supabase (PostgreSQL + REST API) |
+| Testing | Swift Testing framework |
 | Language | Swift 6.2, strict concurrency |
 
 ### Project Structure
 
 ```
-GenStat/
-├── GenStatApp.swift              # App entry point
-├── Models/
-│   ├── GeneratorState.swift      # Raw DB state enum (normal, weekly_test, outage, critical, unknown)
-│   ├── DisplayStatus.swift       # User-facing status enum with labels and colors
-│   ├── GeneratorStatus.swift     # Current status snapshot (Codable model)
-│   └── GeneratorEvent.swift      # State-change event (Codable model)
-├── Services/
-│   ├── SupabaseService.swift     # REST API client with ISO 8601 date decoding
-│   └── GeneratorMonitor.swift    # @Observable polling controller
-├── Views/
-│   ├── ContentView.swift         # Root view, owns GeneratorMonitor, manages scene lifecycle
-│   ├── StatusView.swift          # Main dashboard: power flow diagram, stats, toolbar
-│   ├── PowerFlowView.swift       # Replaceable power flow diagram — takes GeneratorState as input only
-│   ├── EventLogView.swift        # Paginated event history list
-│   ├── EventRow.swift            # Single event row: date, state transition, duration, voltages
-│   └── ErrorBanner.swift         # Dismissable error notification banner
-└── Assets.xcassets/
+GenStat/                              ← repo root
+├── Secrets.xcconfig                  # Actual credentials — gitignored, never committed
+├── Secrets.xcconfig.template         # Template for new developers — committed
+├── GenStat.xcodeproj/
+├── GenStat/
+│   ├── GenStatApp.swift              # App entry point
+│   ├── Models/
+│   │   ├── GeneratorState.swift      # Raw DB state enum (normal, weekly_test, outage, critical, unknown)
+│   │   ├── DisplayStatus.swift       # User-facing status enum with labels and colors
+│   │   ├── GeneratorStatus.swift     # Current status snapshot (Codable model)
+│   │   └── GeneratorEvent.swift      # State-change event (Codable model)
+│   ├── Services/
+│   │   ├── SupabaseService.swift     # REST API client with ISO 8601 date decoding
+│   │   └── GeneratorMonitor.swift    # @Observable polling controller
+│   ├── Views/
+│   │   ├── ContentView.swift         # Root view, owns GeneratorMonitor, manages scene lifecycle
+│   │   ├── StatusView.swift          # Main dashboard: power flow diagram, stats, toolbar
+│   │   ├── PowerFlowView.swift       # Replaceable power flow diagram — takes GeneratorState as input only
+│   │   ├── EventLogView.swift        # Paginated event history list
+│   │   ├── EventRow.swift            # Single event row: date, state transition, duration, voltages
+│   │   └── ErrorBanner.swift         # Dismissable error notification banner
+│   └── Assets.xcassets/
+├── GenStatTests/
+│   ├── GeneratorStateTests.swift  # GeneratorState enum tests
+│   ├── DisplayStatusTests.swift   # DisplayStatus mapping tests
+│   ├── DecodingTests.swift        # JSON decoding and date parsing tests
+│   ├── MockDataSource.swift       # Mock data source and test fixtures
+│   └── GeneratorMonitorTests.swift # Monitor refresh and polling tests
+└── monitoring/
+    ├── generator_monitor.py          # Raspberry Pi monitoring service — reads ../Secrets.xcconfig
+    └── requirements.txt
 ```
 
 ### Data Flow
@@ -325,10 +339,38 @@ StatusView  EventLogView  Read monitor properties, trigger refresh
 
 ## Setup
 
-1. Clone the repository
-2. Copy `Secrets.xcconfig.template` to `Secrets.xcconfig` and fill in your Supabase project URL and publishable API key (the real `Secrets.xcconfig` is gitignored)
-3. Open `GenStat.xcodeproj` in Xcode
-4. Ensure your Supabase tables have Row Level Security policies allowing anonymous reads:
+### 1. Create your secrets file
+
+Both the iOS app and the Python monitoring script read credentials from a single `Secrets.xcconfig` file in the project root. This file is gitignored and must be created manually on each machine.
+
+```bash
+cp Secrets.xcconfig.template Secrets.xcconfig
+```
+
+Edit `Secrets.xcconfig` and replace the placeholder values with your actual Supabase project URL and publishable API key:
+
+```
+SUPABASE_URL = https://your-project.supabase.co
+SUPABASE_KEY = sb_publishable_...
+```
+
+> **Note:** `Secrets.xcconfig` must never be committed to the repository. It is listed in `.gitignore`. Each developer and each deployment (including the Raspberry Pi) must have its own copy.
+
+### 2. Deploy the monitoring script
+
+Copy the `monitoring/` directory and `Secrets.xcconfig` to the Raspberry Pi, preserving the directory structure. The script resolves `Secrets.xcconfig` relative to its own location (`../Secrets.xcconfig`), so the layout must be:
+
+```
+GenStat/                        ← project root on the Pi
+├── Secrets.xcconfig            ← credentials (gitignored, manually copied)
+└── monitoring/
+    └── generator_monitor.py
+```
+
+### 3. Build the iOS app
+
+1. Open `GenStat.xcodeproj` in Xcode
+2. Ensure your Supabase tables have Row Level Security policies allowing anonymous reads:
    ```sql
    CREATE POLICY "Allow anonymous read" ON generator_status
        FOR SELECT TO anon USING (true);
@@ -336,7 +378,7 @@ StatusView  EventLogView  Read monitor properties, trigger refresh
    CREATE POLICY "Allow anonymous read" ON generator_events
        FOR SELECT TO anon USING (true);
    ```
-5. Build and run on a device or simulator
+3. Build and run on a device or simulator
 
 ---
 
@@ -348,7 +390,6 @@ StatusView  EventLogView  Read monitor properties, trigger refresh
 - **Exercise schedule reminder** — Since the Kohler RDT clears the weekly exercise schedule after a transfer event, the monitoring service already sends a notification reminder. A future enhancement could surface this reminder in the app with a one-tap deep link to the transfer switch manual.
 - **Multiple generators** — Support monitoring more than one generator from a single app instance
 - **Localization** — Add string catalog entries for all user-facing text
-- **Unit tests** — Test `GeneratorMonitor` refresh logic and `SupabaseService` decoding with mock data
 
 ---
 

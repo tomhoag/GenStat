@@ -41,6 +41,13 @@ class GeneratorMonitor {
     private static let pageSize = 50
     private var pollingTask: Task<Void, Never>?
     private let pollingInterval: Duration = .seconds(60)
+    private let dataSource: any GeneratorDataFetching
+
+    /// Creates a monitor with the given data source.
+    /// - Parameter dataSource: The provider of generator data. Defaults to ``SupabaseService``.
+    init(dataSource: any GeneratorDataFetching = SupabaseService()) {
+        self.dataSource = dataSource
+    }
 
     /// Begins periodic polling for status and events.
     ///
@@ -72,9 +79,9 @@ class GeneratorMonitor {
         pollingTask = nil
     }
 
-    private func refreshStatus() async {
+    func refreshStatus() async {
         do {
-            status = try await SupabaseService.fetchStatus()
+            status = try await dataSource.fetchStatus()
             errorMessage = nil
         } catch {
             if !Task.isCancelled {
@@ -84,9 +91,9 @@ class GeneratorMonitor {
         }
     }
 
-    private func refreshEvents() async {
+    func refreshEvents() async {
         do {
-            let fetched = try await SupabaseService.fetchEvents(offset: 0, limit: Self.pageSize)
+            let fetched = try await dataSource.fetchEvents(offset: 0, limit: Self.pageSize)
             events = fetched
             hasMoreEvents = fetched.count >= Self.pageSize
         } catch {
@@ -104,7 +111,7 @@ class GeneratorMonitor {
         guard !isLoadingMore, hasMoreEvents else { return }
         isLoadingMore = true
         do {
-            let fetched = try await SupabaseService.fetchEvents(offset: events.count, limit: Self.pageSize)
+            let fetched = try await dataSource.fetchEvents(offset: events.count, limit: Self.pageSize)
             events.append(contentsOf: fetched)
             hasMoreEvents = fetched.count >= Self.pageSize
         } catch {

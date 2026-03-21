@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// Each case maps to a `snake_case` string value in the Supabase
 /// `generator_status` and `generator_events` tables.
-enum GeneratorState: String, Codable {
+enum GeneratorState: String, Codable, CaseIterable {
     case unknown    = "unknown"
     case normal     = "normal"
     case weeklyTest = "weekly_test"

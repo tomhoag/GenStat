@@ -35,7 +35,10 @@ struct SupabaseService {
     }()
 
     /// A shared JSON decoder configured for Supabase response format.
-    private static let decoder: JSONDecoder = {
+    ///
+    /// Uses `snake_case` key conversion and a custom date strategy that
+    /// accepts ISO 8601 timestamps with or without fractional seconds.
+    static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let fractionalStrategy = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
@@ -110,5 +113,21 @@ struct SupabaseService {
             query: "order=created_at.desc&offset=\(offset)&limit=\(limit)"
         )
         return try decoder.decode([GeneratorEvent].self, from: data)
+    }
+}
+
+/// Abstracts generator data fetching for dependency injection in tests.
+protocol GeneratorDataFetching {
+    func fetchStatus() async throws -> GeneratorStatus
+    func fetchEvents(offset: Int, limit: Int) async throws -> [GeneratorEvent]
+}
+
+extension SupabaseService: GeneratorDataFetching {
+    func fetchStatus() async throws -> GeneratorStatus {
+        try await Self.fetchStatus()
+    }
+
+    func fetchEvents(offset: Int, limit: Int) async throws -> [GeneratorEvent] {
+        try await Self.fetchEvents(offset: offset, limit: limit)
     }
 }

@@ -4,7 +4,7 @@ import SwiftUI
 ///
 /// Maps raw ``GeneratorState`` values to human-readable labels and
 /// severity-based colors used throughout the UI.
-enum DisplayStatus {
+enum DisplayStatus: Equatable {
     case ready
     case exercising
     case running

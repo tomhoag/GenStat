@@ -6,14 +6,30 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		0011CAF92F6EFB760043D99A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 007EFCA42F6DEC640001C47F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 007EFCAB2F6DEC640001C47F;
+			remoteInfo = GenStat;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		000F7EFB2F6EDBF50006C2E1 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		000F7EFE2F6EE4950006C2E1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		0011CAF02F6EE6DC0043D99A /* Secrets.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = file; path = Secrets.xcconfig.template; sourceTree = "<group>"; };
+		0011CAF52F6EFB750043D99A /* GenStatTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GenStatTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		007EFCAC2F6DEC640001C47F /* GenStat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GenStat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0011CAF62F6EFB760043D99A /* GenStatTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GenStatTests;
+			sourceTree = "<group>";
+		};
 		007EFCAE2F6DEC640001C47F /* GenStat */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = GenStat;
@@ -22,6 +38,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		0011CAF22F6EFB750043D99A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		007EFCA92F6DEC640001C47F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -38,6 +61,7 @@
 				000F7EFE2F6EE4950006C2E1 /* Info.plist */,
 				000F7EFB2F6EDBF50006C2E1 /* Secrets.xcconfig */,
 				007EFCAE2F6DEC640001C47F /* GenStat */,
+				0011CAF62F6EFB760043D99A /* GenStatTests */,
 				007EFCAD2F6DEC640001C47F /* Products */,
 				0011CAF02F6EE6DC0043D99A /* Secrets.xcconfig.template */,
 			);
@@ -47,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				007EFCAC2F6DEC640001C47F /* GenStat.app */,
+				0011CAF52F6EFB750043D99A /* GenStatTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -54,6 +79,29 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		0011CAF42F6EFB750043D99A /* GenStatTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0011CAFB2F6EFB760043D99A /* Build configuration list for PBXNativeTarget "GenStatTests" */;
+			buildPhases = (
+				0011CAF12F6EFB750043D99A /* Sources */,
+				0011CAF22F6EFB750043D99A /* Frameworks */,
+				0011CAF32F6EFB750043D99A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0011CAFA2F6EFB760043D99A /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				0011CAF62F6EFB760043D99A /* GenStatTests */,
+			);
+			name = GenStatTests;
+			packageProductDependencies = (
+			);
+			productName = GenStatTests;
+			productReference = 0011CAF52F6EFB750043D99A /* GenStatTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		007EFCAB2F6DEC640001C47F /* GenStat */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 007EFCB72F6DEC670001C47F /* Build configuration list for PBXNativeTarget "GenStat" */;
@@ -86,6 +134,10 @@
 				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
+					0011CAF42F6EFB750043D99A = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 007EFCAB2F6DEC640001C47F;
+					};
 					007EFCAB2F6DEC640001C47F = {
 						CreatedOnToolsVersion = 26.3;
 					};
@@ -106,11 +158,19 @@
 			projectRoot = "";
 			targets = (
 				007EFCAB2F6DEC640001C47F /* GenStat */,
+				0011CAF42F6EFB750043D99A /* GenStatTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0011CAF32F6EFB750043D99A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		007EFCAA2F6DEC640001C47F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -121,6 +181,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		0011CAF12F6EFB750043D99A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		007EFCA82F6DEC640001C47F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -130,7 +197,57 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		0011CAFA2F6EFB760043D99A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 007EFCAB2F6DEC640001C47F /* GenStat */;
+			targetProxy = 0011CAF92F6EFB760043D99A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		0011CAFC2F6EFB760043D99A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L6BVR86H7Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.offbyone.GenStatTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GenStat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GenStat";
+			};
+			name = Debug;
+		};
+		0011CAFD2F6EFB760043D99A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = L6BVR86H7Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = studio.offbyone.GenStatTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GenStat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GenStat";
+			};
+			name = Release;
+		};
 		007EFCB52F6DEC670001C47F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 000F7EFB2F6EDBF50006C2E1 /* Secrets.xcconfig */;
@@ -325,6 +442,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0011CAFB2F6EFB760043D99A /* Build configuration list for PBXNativeTarget "GenStatTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0011CAFC2F6EFB760043D99A /* Debug */,
+				0011CAFD2F6EFB760043D99A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		007EFCA72F6DEC640001C47F /* Build configuration list for PBXProject "GenStat" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
