@@ -1,0 +1,83 @@
+import SwiftUI
+
+struct PowerFlowView: View {
+    let state: GeneratorState
+
+    private var displayStatus: DisplayStatus {
+        switch state {
+        case .normal:     .ready
+        case .weeklyTest: .exercising
+        case .outage:     .running
+        case .critical:   .critical
+        case .unknown:    .unknown
+        }
+    }
+
+    var body: some View {
+        VStack {
+            GeneratorImageView(displayStatus: displayStatus)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+
+            Text(displayStatus.label)
+                .font(.title)
+                .bold()
+                .foregroundStyle(displayStatus.color)
+                .animation(.easeInOut, value: state)
+        }
+    }
+}
+
+private struct GeneratorImageView: View {
+    let displayStatus: DisplayStatus
+
+    var body: some View {
+        Group {
+            if UIImage(named: "generator_placeholder") != nil {
+                Image("generator_placeholder")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.primary)
+                    .overlay {
+                        Image("generator_bolt")
+                            .resizable()
+                            .scaledToFit()
+                            .foregroundStyle(displayStatus.color)
+                    }
+            } else {
+                Image(systemName: "bolt.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(displayStatus.color)
+                    .padding()
+            }
+        }
+        .saturation(displayStatus == .unknown ? 0.3 : 1.0)
+        .clipShape(.rect(cornerRadius: 20))
+    }
+}
+
+#Preview("Ready") {
+    PowerFlowView(state: .normal)
+        .padding()
+}
+
+#Preview("Exercising") {
+    PowerFlowView(state: .weeklyTest)
+        .padding()
+}
+
+#Preview("Running") {
+    PowerFlowView(state: .outage)
+        .padding()
+}
+
+#Preview("Critical") {
+    PowerFlowView(state: .critical)
+        .padding()
+}
+
+#Preview("Unknown") {
+    PowerFlowView(state: .unknown)
+        .padding()
+}
