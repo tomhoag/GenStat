@@ -8,5 +8,8 @@ xcuserdata/
 # macOS
 .DS_Store
 
+# JetBrains IDE
+.idea/
+
 # Secrets
 Secrets.xcconfig
