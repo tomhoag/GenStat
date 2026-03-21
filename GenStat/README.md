@@ -86,8 +86,8 @@ StatusView  EventLogView  Read monitor properties, trigger refresh
 
 ## Requirements
 
-- iOS 26.0 or later
-- Xcode 26.0 or later
+- iOS 26.2 or later
+- Xcode 26.3 or later
 - Swift 6.2
 - A Supabase project with the tables described in the [root README](../README.md#database-schema) and RLS policies enabling anonymous `SELECT` access
 

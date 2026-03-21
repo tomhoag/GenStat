@@ -24,7 +24,7 @@ The system catches all four meaningful states:
 
 ## Safety Warning
 
-**The monitoring hardware requires physical access to the interior of an automatic transfer switch enclosure. This is extremely dangerous work.**
+** The monitoring hardware requires physical access to the interior of an automatic transfer switch enclosure. This is extremely dangerous work.**
 
 An automatic transfer switch contains live mains voltage at all times — including on the utility input terminals — even when the generator is off and the circuit breakers inside the panel are open. The utility feed entering the enclosure from the top cannot be de-energized without disconnecting power at the utility meter. Contact with these terminals will cause severe injury or death.
 
@@ -77,7 +77,7 @@ SUPABASE_KEY = sb_publishable_...
 
 ### 2. Set up Supabase
 
-Create a Supabase project and set up the two tables described in the [Database Schema](#database-schema) section below. Add Row Level Security policies allowing anonymous reads:
+Create a [Supabase](https://supabase.com) project and set up the two tables described in the [Database Schema](#database-schema) section below. Add Row Level Security policies allowing anonymous reads:
 
 ```sql
 CREATE POLICY "Allow anonymous read" ON generator_status
@@ -130,11 +130,11 @@ Both tables use Row Level Security with policies allowing anonymous read access 
 
 ## HomeKit Integration
 
-In addition to the Supabase backend, the monitoring service integrates with **Apple HomeKit** via **Homebridge**, allowing generator status to appear natively in the iOS Home app alongside other smart home devices.
+In addition to the Supabase backend, the monitoring service integrates with **Apple HomeKit** via [**Homebridge**](https://homebridge.io), allowing generator status to appear natively in the iOS Home app alongside other smart home devices.
 
 ### Infrastructure
 
-Homebridge runs on a separate Raspberry Pi elsewhere in the home. The monitoring Pi and the Homebridge Pi communicate over the local network via simple HTTP calls — the monitoring Pi sends webhook requests to Homebridge whenever the generator state changes.
+Homebridge runs elsewhere in the home. The monitoring Pi and the Homebridge Pi communicate over the local network via simple HTTP calls — the monitoring Pi sends webhook requests to Homebridge whenever the generator state changes.
 
 ```
 Monitoring Pi (basement)

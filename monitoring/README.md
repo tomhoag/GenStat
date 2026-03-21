@@ -6,7 +6,7 @@ A Python script that reads real-time status data from a Kohler RDT transfer swit
 
 ## Hardware
 
-The monitoring system is built around a **Raspberry Pi 2B** mounted in the basement near the transfer switch. It connects to the **Kohler RDT-CFNA-0100B** transfer switch via the transfer switch's built-in RS-232 serial port (labeled P7 on the MPAC 500 controller board).
+The monitoring system is built around a **Raspberry Pi 2B** mounted near the transfer switch. It connects to the **Kohler RDT-CFNA-0100B** transfer switch via the transfer switch's built-in RS-232 serial port (labeled P7 on the MPAC 500 controller board).
 
 The serial chain is:
 
