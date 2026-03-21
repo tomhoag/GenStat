@@ -5,9 +5,18 @@ A complete home generator monitoring system: a Raspberry Pi reads real-time data
 <!-- Hero image placeholder -->
 ![GenStat Screenshot](docs/hero.png)
 
-## Overview
+---
+
+## Why This Exists
 
 Residential standby generators run infrequently — typically a weekly exercise cycle and the occasional power outage. Between those events they sit idle, and most homeowners have no easy way to confirm the system is healthy without physically walking to the generator or the transfer switch panel to check the status LEDs.
+
+This creates several blind spots:
+
+- **Missed exercise cycles** — The Kohler RDT transfer switch has a known firmware issue where the weekly exercise schedule is cleared after a transfer event. Without visibility, the schedule may go unset for weeks or months without the homeowner knowing.
+- **Silent failures** — If the generator fails to start during an outage, the homeowner may not know until they notice the lights are out. There is no built-in notification system.
+- **No outage history** — The transfer switch has no accessible log. There is no way to know when the last outage occurred, how long it lasted, or how many hours the generator has accumulated.
+- **Maintenance timing** — Generator manufacturers recommend service intervals based on runtime hours, but tracking those hours manually against a machine that runs for 20 minutes a week is impractical.
 
 GenStat solves this by providing at-a-glance visibility into the operational state of the system. The monitoring service on the Raspberry Pi determines the current state from live voltage readings and publishes every state change to Supabase, Homebridge (HomeKit), and Ntfy push notifications. The iOS app reads the Supabase database and presents the information in a clear, glanceable format.
 
@@ -22,15 +31,16 @@ The system catches all four meaningful states:
 
 ---
 
-## Safety Warning
+## ⚠️ Safety Warning
 
-** The monitoring hardware requires physical access to the interior of an automatic transfer switch enclosure. This is extremely dangerous work.**
-
-An automatic transfer switch contains live mains voltage at all times — including on the utility input terminals — even when the generator is off and the circuit breakers inside the panel are open. The utility feed entering the enclosure from the top cannot be de-energized without disconnecting power at the utility meter. Contact with these terminals will cause severe injury or death.
-
-**This work should only be performed by a licensed electrician.** If you are not a licensed electrician, do not open the transfer switch enclosure, do not route cables through it, and do not connect anything to the terminals or circuit boards inside.
-
-The software components of this project — the Python monitoring script, the iOS app, the Homebridge integration, and the Supabase backend — can all be developed and tested independently without touching the electrical hardware.
+> [!CAUTION]
+> **The monitoring hardware requires physical access to the interior of an automatic transfer switch enclosure. This is extremely dangerous work that can result in severe injury or death.**
+>
+> An automatic transfer switch contains live mains voltage at all times — including on the utility input terminals — even when the generator is off and the circuit breakers inside the panel are open. The utility feed entering the enclosure from the top cannot be de-energized without disconnecting power at the utility meter. Contact with these terminals will cause severe injury or death.
+>
+> **All electrical work associated with this project must be performed by a licensed electrician.** If you are not a licensed electrician, do not open the transfer switch enclosure, do not route cables through it, and do not connect anything to the terminals or circuit boards inside.
+>
+> The software components of this project — the Python monitoring script, the iOS app, the Homebridge integration, and the Supabase backend — can all be developed and tested independently without touching the electrical hardware.
 
 ---
 
@@ -53,6 +63,8 @@ GenStat/                              ← repo root
     ├── requirements.txt
     └── README.md
 ```
+
+> **Note:** All paths shown above reflect the expected repository structure. Verify that actual paths on your Raspberry Pi deployment match before running the monitoring service or install script.
 
 ---
 
@@ -189,23 +201,6 @@ The relevant section of the Homebridge `config.json`:
 ### Behavior During Network Outage
 
 If the home network is unavailable (e.g. during a power outage where the network equipment is not on a generator-backed circuit), the HomeKit webhook calls will fail silently — the monitoring service logs the error and continues. When the network comes back up, the next state change will update the HomeKit sensors correctly. The Supabase notifications and the GenStat app follow the same pattern — they work when the network is available and catch up on the next successful connection.
-
----
-
-## Motivation
-
-### The Problem
-
-This creates several blind spots:
-
-- **Missed exercise cycles** — The Kohler RDT transfer switch has a known firmware issue where the weekly exercise schedule is cleared after a transfer event. Without visibility, the schedule may go unset for weeks or months without the homeowner knowing.
-- **Silent failures** — If the generator fails to start during an outage, the homeowner may not know until they notice the lights are out. There is no built-in notification system.
-- **No outage history** — The transfer switch has no accessible log. There is no way to know when the last outage occurred, how long it lasted, or how many hours the generator has accumulated.
-- **Maintenance timing** — Generator manufacturers recommend service intervals based on runtime hours, but tracking those hours manually against a machine that runs for 20 minutes a week is impractical.
-
-### The Solution
-
-GenStat is the consumer-facing half of a complete home generator monitoring system built around an automatic transfer switch that already existed in the home. The backend monitoring service reads real-time data from the transfer switch's RS-232 serial port every 30 seconds, determines the current system state, and writes it to a cloud database. GenStat reads that database and presents the information in a clear, glanceable format on the homeowner's iPhone.
 
 ---
 

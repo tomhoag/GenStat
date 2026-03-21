@@ -125,6 +125,7 @@ To start automatically on boot and restart on failure, create a systemd unit fil
 
 ```ini
 # /etc/systemd/system/generator-monitor.service
+# Note: verify all paths match your Pi's actual directory structure before installing
 [Unit]
 Description=Kohler Generator Monitor
 After=network-online.target
@@ -133,8 +134,8 @@ Wants=network-online.target
 [Service]
 ExecStart=/usr/bin/python3 /home/pi/GenStat/monitoring/generator_monitor.py
 WorkingDirectory=/home/pi/GenStat/monitoring
-Restart=always
-RestartSec=10
+Restart=on-failure
+RestartSec=30
 User=pi
 
 [Install]
