@@ -13,3 +13,7 @@ xcuserdata/
 
 # Secrets
 Secrets.xcconfig
+
+# Reference files
+*.CoolTermSettings
+*.pdf

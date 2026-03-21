@@ -6,7 +6,7 @@ A Python script that reads real-time status data from a Kohler RDT transfer swit
 
 ## Hardware
 
-The monitoring system is built around a **Raspberry Pi 2B** mounted near the transfer switch. It connects to the **Kohler RDT-CFNA-0100B** transfer switch via the transfer switch's built-in RS-232 serial port (labeled P7 on the MPAC 500 controller board).
+The monitoring system is built around a **Raspberry Pi 2B** mounted near the transfer switch. It connects to the **Kohler RDT-CFNA-0100B** transfer switch via the transfer switch's built-in RS-232 serial port.
 
 The serial chain is:
 
@@ -14,15 +14,17 @@ The serial chain is:
 Kohler RDT Transfer Switch
   RS-232 port (DB9 female, P7 on MPAC 500 board)
         ↕  DB9 male-to-female flat ribbon cable
-  MAX3232 RS-232 to TTL level converter module
-        ↕  jumper wires (TX→RX, RX→TX, GND, 3.3V)
+  FTDI USB-to-RS232 adapter (DB9 male, FTDI chipset)
+        ↕  USB
   Raspberry Pi 2B
-  GPIO UART pins (/dev/serial0)
+  /dev/ttyUSB0
 ```
 
-The MAX3232 module converts the RS-232 voltage levels (±12V) to 3.3V TTL logic levels safe for the Pi's GPIO pins. A flat ribbon cable routes through a gap in the transfer switch enclosure to keep the installation clean and non-invasive — no wiring is modified inside the panel.
+A flat ribbon cable routes from P7 through a gap in the transfer switch enclosure to the FTDI adapter. The FTDI adapter handles RS-232 level conversion internally and connects to the Pi via USB — no separate level converter or GPIO wiring is required.
 
-A CP2102 USB-to-TTL adapter is used during initial setup and debugging to capture raw serial output on a Mac for verification before switching to the permanent Pi connection.
+The same FTDI adapter can be plugged into a Mac for initial verification of the serial data format before deploying to the Pi.
+
+> For full transfer switch documentation see the [Kohler RDT Manual (TP-6346)](http://www.fireelectronics.com/docs/Kohler%20Literature/lit/tp6346.pdf).
 
 ---
 
@@ -48,6 +50,9 @@ Normal Position
 ```
 
 `Normal Voltage` is the utility source voltage. `Emergency Voltage` is the generator output voltage. `Normal Position` / `Emergency Position` indicates which source is currently supplying the load. `Exerciser Active` or `Test Mode Active` may appear as additional lines during exercise or test cycles.
+
+> Source: [Kohler RDT Manual, Section 5.6 Controller Monitoring Using
+Hyper Terminal](http://www.fireelectronics.com/docs/Kohler%20Literature/lit/tp6346.pdf#page52)
 
 ---
 
@@ -156,7 +161,7 @@ The following constants at the top of `generator_monitor.py` can be adjusted:
 
 | Constant | Default | Description |
 |---|---|---|
-| `SERIAL_PORT` | `/dev/serial0` | Pi UART device |
+| `SERIAL_PORT` | `/dev/ttyUSB0` | FTDI USB-to-RS232 adapter |
 | `BAUD_RATE` | `19200` | Kohler RDT serial speed |
 | `READ_TIMEOUT` | `60` | Seconds to wait for a complete data block |
 | `POLL_INTERVAL` | `35` | Seconds between status checks |
