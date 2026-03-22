@@ -20,7 +20,7 @@ struct PowerFlowView: View {
                 .aspectRatio(200.0 / 160.0, contentMode: .fit)
 
             Text(displayStatus.label)
-                .font(.title)
+                .font(.largeTitle)
                 .bold()
                 .foregroundStyle(displayStatus.color)
                 .animation(.easeInOut, value: state)

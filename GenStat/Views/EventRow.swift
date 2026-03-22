@@ -14,8 +14,9 @@ struct EventRow: View {
                 HStack {
                     Text(event.previousState.displayName)
                         .foregroundStyle(event.previousState.color)
-                    Text("→")
+                    Image(systemName: "arrow.right")
                         .foregroundStyle(.secondary)
+                        .imageScale(.small)
                     Text(event.newState.displayName)
                         .foregroundStyle(event.newState.color)
                 }

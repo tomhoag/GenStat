@@ -8,16 +8,16 @@ struct StatusView: View {
         NavigationStack {
             ZStack {
                 VStack {
-                    Text("GenStat")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-
                     Spacer()
 
                     PowerFlowView(state: monitor.status?.currentState ?? .unknown)
                         .padding(.horizontal)
 
-                    VStack {
+                    Text(sinceText)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    VStack(spacing: 4) {
                         Text("Generator Hours: \(formattedRuntimeHours)")
                             .foregroundStyle(.secondary)
                         Text(lastExercisedText)
@@ -25,11 +25,7 @@ struct StatusView: View {
                         Text(lastOutageText)
                             .foregroundStyle(.secondary)
                     }
-                    .font(.title2)
-
-                    Text(lastUpdatedText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .font(.callout)
 
                     Spacer()
                 }
@@ -142,18 +138,20 @@ struct StatusView: View {
         }
     }
 
-    private var lastUpdatedText: String {
+    private var sinceText: String {
         guard let date = monitor.status?.updatedAt else {
-            return "Not yet updated"
+            return ""
         }
         let interval = Date.now.timeIntervalSince(date)
         if interval < 60 {
-            return "Updated just now"
+            return "since just now"
         } else if interval < 3600 {
             let minutes = Int(interval / 60)
-            return "Updated \(minutes) minute\(minutes == 1 ? "" : "s") ago"
+            return "since \(minutes) minute\(minutes == 1 ? "" : "s") ago"
+        } else if Calendar.current.isDateInToday(date) {
+            return "since \(date.formatted(date: .omitted, time: .shortened))"
         } else {
-            return "Updated \(date.formatted(date: .abbreviated, time: .shortened))"
+            return "since \(date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
         }
     }
 }
