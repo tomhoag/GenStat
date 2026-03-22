@@ -11,7 +11,7 @@ States:
   CRITICAL        - Utility down, generator not running
 
 Serial connection:
-  Device : /dev/serial0  (Pi UART via MAX3232 adapter)
+  Device : /dev/ttyUSB0  (FTDI USB-to-RS232 adapter via null modem cable)
   Baud   : 19200
   Data   : 8N1
   Flow   : XON/XOFF
@@ -251,17 +251,13 @@ class MockSerial:
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-SERIAL_PORT     = "/dev/serial0"
+SERIAL_PORT = "/dev/ttyUSB0"
 BAUD_RATE       = 19200
 READ_TIMEOUT    = 60        # seconds to wait for a complete data block
 POLL_INTERVAL   = 35        # seconds between status checks (data arrives ~30s)
 
 # Voltage thresholds — adjust if needed after seeing real data
 VOLTAGE_PRESENT = 90        # volts — below this is considered "no power"
-
-# Ntfy configuration
-NTFY_ENABLED    = False     # set True once you have ntfy set up
-NTFY_URL        = "https://ntfy.sh/your-topic-here"  # replace with your topic
 
 # Homebridge webhook configuration
 HOMEBRIDGE_ENABLED      = True
@@ -307,7 +303,7 @@ def _load_secrets():
                 continue
             if "=" in line:
                 key, _, value = line.partition("=")
-                secrets[key.strip()] = value.strip()
+                secrets[key.strip()] = value.strip().replace("$()", "")
     return secrets
 
 
@@ -637,27 +633,6 @@ def publish_to_supabase(old_state, new_state, data, duration_seconds):
     supabase_upsert("generator_status", status)
 
 
-# ── Notifications ─────────────────────────────────────────────────────────────
-
-def send_notification(title, message, priority="default"):
-    """Send a push notification via Ntfy."""
-    if not NTFY_ENABLED:
-        log.info(f"[ntfy disabled] {title}: {message}")
-        return
-    try:
-        import urllib.request
-        req = urllib.request.Request(
-            NTFY_URL,
-            data=message.encode("utf-8"),
-            headers={"Title": title, "Priority": priority},
-            method="POST",
-        )
-        urllib.request.urlopen(req, timeout=10)
-        log.info(f"Notification sent: {title}")
-    except Exception as e:
-        log.error(f"Failed to send notification: {e}")
-
-
 # ── State change handler ──────────────────────────────────────────────────────
 
 def on_state_change(old_state, new_state, data, duration_seconds=0):
@@ -680,46 +655,6 @@ def on_state_change(old_state, new_state, data, duration_seconds=0):
     elif new_state == State.CRITICAL:
         update_homebridge(ACCESSORY_GENERATOR, False)
         update_homebridge(ACCESSORY_UTILITY,   False)
-
-    # ── Send Ntfy notifications ───────────────────────────────────────────────
-
-    if new_state == State.NORMAL:
-        if old_state == State.OUTAGE:
-            send_notification(
-                "Generator — Utility Restored",
-                "Utility power is back. Generator has shut down.\n"
-                "⚠️ Remember to reset your weekly exercise schedule.",
-                priority="default",
-            )
-        elif old_state == State.WEEKLY_TEST:
-            send_notification(
-                "Generator — Weekly Test Complete",
-                "Weekly exercise test finished. Back on utility power.",
-                priority="low",
-            )
-
-    elif new_state == State.WEEKLY_TEST:
-        send_notification(
-            "Generator — Weekly Test Running",
-            "Generator exercise test is running.",
-            priority="low",
-        )
-
-    elif new_state == State.OUTAGE:
-        send_notification(
-            "Generator — Power Outage",
-            f"Utility power lost. Generator is supplying the house.\n"
-            f"Generator voltage: {data.emergency_voltage}V",
-            priority="high",
-        )
-
-    elif new_state == State.CRITICAL:
-        send_notification(
-            "Generator — CRITICAL FAILURE",
-            "Utility power is DOWN and generator is NOT running!\n"
-            "Immediate attention required.",
-            priority="urgent",
-        )
 
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
@@ -801,3 +736,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
