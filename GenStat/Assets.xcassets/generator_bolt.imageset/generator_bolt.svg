@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <!-- Lightning bolt - same position as in generator_placeholder -->
-  <polygon points="112,95 92,125 104,125 88,155 118,118 105,118 120,95" fill="currentColor"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="200" height="160">
+  <!-- Lightning bolt — centered on generator body, matching icon proportions -->
+  <polygon points="113,70 86,101 102,101 78,132 121,97 104,97 127,70" fill="currentColor"/>
 </svg>

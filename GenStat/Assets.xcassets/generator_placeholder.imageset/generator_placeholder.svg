@@ -1,17 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="200" height="160">
   <!-- Generator body -->
-  <rect x="30" y="60" width="140" height="100" rx="12" ry="12" fill="none" stroke="currentColor" stroke-width="6"/>
+  <rect x="20" y="38" width="160" height="108" rx="14" ry="14" fill="none" stroke="currentColor" stroke-width="6"/>
   <!-- Top vents -->
-  <line x1="60" y1="70" x2="60" y2="85" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-  <line x1="80" y1="70" x2="80" y2="85" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-  <line x1="100" y1="70" x2="100" y2="85" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-  <line x1="120" y1="70" x2="120" y2="85" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
-  <line x1="140" y1="70" x2="140" y2="85" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+  <line x1="56" y1="48" x2="56" y2="65" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+  <line x1="76" y1="48" x2="76" y2="65" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+  <line x1="96" y1="48" x2="96" y2="65" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+  <line x1="116" y1="48" x2="116" y2="65" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+  <line x1="136" y1="48" x2="136" y2="65" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
   <!-- Base/feet -->
-  <rect x="40" y="160" width="25" height="10" rx="3" fill="currentColor"/>
-  <rect x="135" y="160" width="25" height="10" rx="3" fill="currentColor"/>
+  <rect x="35" y="146" width="28" height="10" rx="3" fill="currentColor"/>
+  <rect x="137" y="146" width="28" height="10" rx="3" fill="currentColor"/>
   <!-- Control panel -->
-  <rect x="42" y="95" width="30" height="20" rx="4" fill="none" stroke="currentColor" stroke-width="3"/>
-  <circle cx="50" cy="105" r="3" fill="currentColor"/>
-  <circle cx="62" cy="105" r="3" fill="currentColor"/>
+  <rect x="32" y="82" width="36" height="24" rx="5" fill="none" stroke="currentColor" stroke-width="3"/>
+  <circle cx="42" cy="94" r="4" fill="currentColor"/>
+  <circle cx="56" cy="94" r="4" fill="currentColor"/>
 </svg>

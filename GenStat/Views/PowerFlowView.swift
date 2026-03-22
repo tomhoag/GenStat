@@ -17,7 +17,7 @@ struct PowerFlowView: View {
         VStack {
             GeneratorImageView(displayStatus: displayStatus)
                 .frame(maxWidth: .infinity)
-                .aspectRatio(1, contentMode: .fit)
+                .aspectRatio(200.0 / 160.0, contentMode: .fit)
 
             Text(displayStatus.label)
                 .font(.title)
