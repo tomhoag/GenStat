@@ -114,6 +114,16 @@ class GeneratorMonitor {
         }
     }
 
+    /// Clears the exercise-schedule-check flag on the server and refreshes local status.
+    func dismissExerciseReminder() async {
+        do {
+            try await SupabaseService.clearExerciseScheduleCheck()
+            await refreshStatus()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Loads the next page of older events and appends them to ``events``.
     ///
     /// Does nothing if a page load is already in progress or all events

@@ -114,6 +114,40 @@ struct SupabaseService {
         return data
     }
 
+    /// Performs an authenticated PATCH request against the Supabase REST API.
+    /// - Parameters:
+    ///   - path: The API endpoint path with query filter (e.g. `/rest/v1/generator_status?id=eq.1`).
+    ///   - body: The JSON body data to send.
+    /// - Throws: `URLError` if the URL is invalid or the server returns a non-2xx status.
+    private static func patch(path: String, body: Data) async throws {
+        guard let url = URL(string: "\(supabaseURL)\(path)") else {
+            throw URLError(.badURL)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue(supabaseKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(supabaseKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("return=minimal", forHTTPHeaderField: "Prefer")
+        request.httpBody = body
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw URLError(.badServerResponse, userInfo: [
+                NSLocalizedDescriptionKey: "Server returned status \(statusCode)"
+            ])
+        }
+    }
+
+    /// Clears the exercise schedule check flag in the `generator_status` table.
+    /// - Throws: `URLError` on network or server failure.
+    static func clearExerciseScheduleCheck() async throws {
+        let payload: [String: Any] = ["exercise_schedule_check_needed": false]
+        let body = try JSONSerialization.data(withJSONObject: payload)
+        try await patch(path: "/rest/v1/generator_status?id=eq.1", body: body)
+    }
+
     /// Registers or updates the APNs device token in the `device_tokens` table.
     /// - Parameter token: The hex-encoded device token string.
     /// - Throws: `URLError` on network or server failure.

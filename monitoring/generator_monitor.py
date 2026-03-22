@@ -635,6 +635,7 @@ def publish_to_supabase(old_state, new_state, data, duration_seconds):
         status["last_outage_at"] = now
     if old_state == State.OUTAGE and new_state != State.WEEKLY_TEST:
         status["last_outage_duration_seconds"] = duration_seconds
+        status["exercise_schedule_check_needed"] = True
         # Accumulate runtime hours — outage only, never exercise
         duration_hours = duration_seconds / 3600.0
         current_hours  = get_current_runtime_hours()
@@ -796,7 +797,7 @@ def on_state_change(old_state, new_state, data, duration_seconds=0):
         send_notification(
             "Power Restored",
             "Utility power is back. Generator has shut down.\n"
-            "Remember to verify your weekly exercise schedule.",
+            "Check your weekly exercise schedule — the RDT may have cleared it.",
             priority="5",
         )
 

@@ -32,4 +32,7 @@ struct GeneratorStatus: Codable {
 
     /// Duration of the most recent outage in seconds.
     let lastOutageDurationSeconds: Int?
+
+    /// Whether the user should verify the RDT exercise schedule after an outage.
+    let exerciseScheduleCheckNeeded: Bool?
 }

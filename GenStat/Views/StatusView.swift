@@ -58,14 +58,33 @@ struct StatusView: View {
                 }
             }
             .overlay(alignment: .top) {
-                if let error = monitor.errorMessage {
-                    ErrorBanner(message: error) {
-                        monitor.errorMessage = nil
+                VStack(spacing: 8) {
+                    if let error = monitor.errorMessage {
+                        ErrorBanner(message: error) {
+                            monitor.errorMessage = nil
+                        }
+                        .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                    .transition(.move(edge: .top).combined(with: .opacity))
+
+                    if monitor.status?.exerciseScheduleCheckNeeded == true {
+                        Button {
+                            Task { await monitor.dismissExerciseReminder() }
+                        } label: {
+                            Text("Exercise schedule may need reprogramming after the recent outage.")
+                                .font(.caption)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal)
+                                .padding(.vertical)
+                                .frame(maxWidth: .infinity)
+                                .background(.orange.opacity(0.85), in: .rect(cornerRadius: 10))
+                        }
+                        .padding(.horizontal)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
             }
             .animation(.default, value: monitor.errorMessage)
+            .animation(.default, value: monitor.status?.exerciseScheduleCheckNeeded)
         }
     }
 
