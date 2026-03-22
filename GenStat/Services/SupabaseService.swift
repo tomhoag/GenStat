@@ -72,6 +72,7 @@ struct SupabaseService {
         }
         var request = URLRequest(url: url)
         request.setValue(supabaseKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(supabaseKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
@@ -82,6 +83,47 @@ struct SupabaseService {
             ])
         }
         return data
+    }
+
+    /// Performs an authenticated POST request against the Supabase REST API.
+    /// - Parameters:
+    ///   - path: The API endpoint path (e.g. `/rest/v1/device_tokens`).
+    ///   - body: The JSON body data to send.
+    /// - Returns: The raw response data.
+    /// - Throws: `URLError` if the URL is invalid or the server returns a non-2xx status.
+    @discardableResult
+    private static func post(path: String, body: Data) async throws -> Data {
+        guard let url = URL(string: "\(supabaseURL)\(path)") else {
+            throw URLError(.badURL)
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(supabaseKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(supabaseKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("resolution=merge-duplicates", forHTTPHeaderField: "Prefer")
+        request.httpBody = body
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw URLError(.badServerResponse, userInfo: [
+                NSLocalizedDescriptionKey: "Server returned status \(statusCode)"
+            ])
+        }
+        return data
+    }
+
+    /// Registers or updates the APNs device token in the `device_tokens` table.
+    /// - Parameter token: The hex-encoded device token string.
+    /// - Throws: `URLError` on network or server failure.
+    static func registerDeviceToken(_ token: String) async throws {
+        let payload: [String: Any] = [
+            "token": token,
+            "platform": "ios"
+        ]
+        let body = try JSONSerialization.data(withJSONObject: payload)
+        try await post(path: "/rest/v1/device_tokens?on_conflict=token", body: body)
     }
 
     /// Fetches the current generator status from the `generator_status` table.

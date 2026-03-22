@@ -15,6 +15,9 @@ xcuserdata/
 Secrets.xcconfig
 *.p8
 
+# Supabase local
+supabase/.temp/
+
 # Reference files
 *.CoolTermSettings
 *.pdf

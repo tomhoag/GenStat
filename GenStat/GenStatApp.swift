@@ -9,9 +9,28 @@ import SwiftUI
 
 @main
 struct GenStatApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .task {
+                    await requestNotificationPermission()
+                }
+        }
+    }
+
+    private func requestNotificationPermission() async {
+        let center = UNUserNotificationCenter.current()
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            if granted {
+                await MainActor.run {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        } catch {
+            print("Notification authorization failed: \(error)")
         }
     }
 }
