@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Manages periodic polling of generator status and event data from Supabase.
 ///
@@ -83,12 +84,22 @@ class GeneratorMonitor {
         do {
             status = try await dataSource.fetchStatus()
             errorMessage = nil
+            updateAppIcon()
         } catch {
             if !Task.isCancelled {
                 status = nil
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    private func updateAppIcon() {
+        let displayStatus = DisplayStatus.from(status)
+        let desiredIcon = displayStatus.alternateIconName
+        let currentIcon = UIApplication.shared.alternateIconName
+
+        guard desiredIcon != currentIcon else { return }
+        UIApplication.shared.setAlternateIconName(desiredIcon)
     }
 
     func refreshEvents() async {

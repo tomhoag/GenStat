@@ -379,8 +379,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 000F7EFB2F6EDBF50006C2E1 /* Secrets.xcconfig */;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "App​Icon​Running App​Icon​Critical App​Icon​Exercising App​Icon​Unknown";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4MUC8K263B;
@@ -413,8 +415,10 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 000F7EFB2F6EDBF50006C2E1 /* Secrets.xcconfig */;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "App​Icon​Running App​Icon​Critical App​Icon​Exercising App​Icon​Unknown";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4MUC8K263B;

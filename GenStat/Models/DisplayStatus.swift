@@ -22,6 +22,17 @@ enum DisplayStatus: Equatable {
         }
     }
 
+    /// The alternate app icon name for this status, or `nil` for the primary (green/ready) icon.
+    var alternateIconName: String? {
+        switch self {
+        case .ready:      nil
+        case .exercising: "AppIconExercising"
+        case .running:    "AppIconRunning"
+        case .critical:   "AppIconCritical"
+        case .unknown:    "AppIconUnknown"
+        }
+    }
+
     /// The severity-based color for this status.
     ///
     /// Uses green for ready, blue for exercising, orange for running,
