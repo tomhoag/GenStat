@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		00E055512F70B1FF00A0FDEE /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00E055502F70B1FF00A0FDEE /* WidgetKit.framework */; };
+		00E055532F70B1FF00A0FDEE /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00E055522F70B1FF00A0FDEE /* SwiftUI.framework */; };
+		00E055642F70B20100A0FDEE /* Gen​Stat​WidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 00E0554E2F70B1FF00A0FDEE /* Gen​Stat​WidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		0011CAF92F6EFB760043D99A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -14,7 +20,28 @@
 			remoteGlobalIDString = 007EFCAB2F6DEC640001C47F;
 			remoteInfo = GenStat;
 		};
+		00E055622F70B20100A0FDEE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 007EFCA42F6DEC640001C47F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 00E0554D2F70B1FF00A0FDEE;
+			remoteInfo = "Gen​Stat​WidgetExtension";
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		00E055652F70B20100A0FDEE /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				00E055642F70B20100A0FDEE /* Gen​Stat​WidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		000F7EFB2F6EDBF50006C2E1 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
@@ -22,7 +49,20 @@
 		0011CAF02F6EE6DC0043D99A /* Secrets.xcconfig.template */ = {isa = PBXFileReference; lastKnownFileType = text; path = Secrets.xcconfig.template; sourceTree = "<group>"; };
 		0011CAF52F6EFB750043D99A /* GenStatTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GenStatTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		007EFCAC2F6DEC640001C47F /* GenStat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GenStat.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		00E0554E2F70B1FF00A0FDEE /* Gen​Stat​WidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Gen​Stat​WidgetExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		00E055502F70B1FF00A0FDEE /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		00E055522F70B1FF00A0FDEE /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		00E055682F70B20100A0FDEE /* Exceptions for "Gen​Stat​Widget" folder in "Gen​Stat​WidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 00E0554D2F70B1FF00A0FDEE /* Gen​Stat​WidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0011CAF62F6EFB760043D99A /* GenStatTests */ = {
@@ -33,6 +73,14 @@
 		007EFCAE2F6DEC640001C47F /* GenStat */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = GenStat;
+			sourceTree = "<group>";
+		};
+		00E055542F70B1FF00A0FDEE /* Gen​Stat​Widget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				00E055682F70B20100A0FDEE /* Exceptions for "Gen​Stat​Widget" folder in "Gen​Stat​WidgetExtension" target */,
+			);
+			path = "Gen​Stat​Widget";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +100,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		00E0554B2F70B1FF00A0FDEE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				00E055532F70B1FF00A0FDEE /* SwiftUI.framework in Frameworks */,
+				00E055512F70B1FF00A0FDEE /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -62,6 +119,8 @@
 				000F7EFB2F6EDBF50006C2E1 /* Secrets.xcconfig */,
 				007EFCAE2F6DEC640001C47F /* GenStat */,
 				0011CAF62F6EFB760043D99A /* GenStatTests */,
+				00E055542F70B1FF00A0FDEE /* Gen​Stat​Widget */,
+				00E0554F2F70B1FF00A0FDEE /* Frameworks */,
 				007EFCAD2F6DEC640001C47F /* Products */,
 				0011CAF02F6EE6DC0043D99A /* Secrets.xcconfig.template */,
 			);
@@ -72,8 +131,18 @@
 			children = (
 				007EFCAC2F6DEC640001C47F /* GenStat.app */,
 				0011CAF52F6EFB750043D99A /* GenStatTests.xctest */,
+				00E0554E2F70B1FF00A0FDEE /* Gen​Stat​WidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		00E0554F2F70B1FF00A0FDEE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				00E055502F70B1FF00A0FDEE /* WidgetKit.framework */,
+				00E055522F70B1FF00A0FDEE /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -109,10 +178,12 @@
 				007EFCA82F6DEC640001C47F /* Sources */,
 				007EFCA92F6DEC640001C47F /* Frameworks */,
 				007EFCAA2F6DEC640001C47F /* Resources */,
+				00E055652F70B20100A0FDEE /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				00E055632F70B20100A0FDEE /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				007EFCAE2F6DEC640001C47F /* GenStat */,
@@ -123,6 +194,28 @@
 			productName = GenStat;
 			productReference = 007EFCAC2F6DEC640001C47F /* GenStat.app */;
 			productType = "com.apple.product-type.application";
+		};
+		00E0554D2F70B1FF00A0FDEE /* Gen​Stat​WidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 00E055692F70B20100A0FDEE /* Build configuration list for PBXNativeTarget "Gen​Stat​WidgetExtension" */;
+			buildPhases = (
+				00E0554A2F70B1FF00A0FDEE /* Sources */,
+				00E0554B2F70B1FF00A0FDEE /* Frameworks */,
+				00E0554C2F70B1FF00A0FDEE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				00E055542F70B1FF00A0FDEE /* Gen​Stat​Widget */,
+			);
+			name = "Gen​Stat​WidgetExtension";
+			packageProductDependencies = (
+			);
+			productName = "Gen​Stat​WidgetExtension";
+			productReference = 00E0554E2F70B1FF00A0FDEE /* Gen​Stat​WidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -139,6 +232,9 @@
 						TestTargetID = 007EFCAB2F6DEC640001C47F;
 					};
 					007EFCAB2F6DEC640001C47F = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					00E0554D2F70B1FF00A0FDEE = {
 						CreatedOnToolsVersion = 26.3;
 					};
 				};
@@ -159,6 +255,7 @@
 			targets = (
 				007EFCAB2F6DEC640001C47F /* GenStat */,
 				0011CAF42F6EFB750043D99A /* GenStatTests */,
+				00E0554D2F70B1FF00A0FDEE /* Gen​Stat​WidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -172,6 +269,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		007EFCAA2F6DEC640001C47F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		00E0554C2F70B1FF00A0FDEE /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -195,6 +299,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		00E0554A2F70B1FF00A0FDEE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -202,6 +313,11 @@
 			isa = PBXTargetDependency;
 			target = 007EFCAB2F6DEC640001C47F /* GenStat */;
 			targetProxy = 0011CAF92F6EFB760043D99A /* PBXContainerItemProxy */;
+		};
+		00E055632F70B20100A0FDEE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 00E0554D2F70B1FF00A0FDEE /* Gen​Stat​WidgetExtension */;
+			targetProxy = 00E055622F70B20100A0FDEE /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -449,6 +565,70 @@
 			};
 			name = Release;
 		};
+		00E055662F70B20100A0FDEE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 000F7EFB2F6EDBF50006C2E1 /* Secrets.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4MUC8K263B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Gen​Stat​Widget/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Gen​Stat​Widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.2;
+				PRODUCT_BUNDLE_IDENTIFIER = "studio.offbyone.KohlerStat.Gen-Stat-Widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		00E055672F70B20100A0FDEE /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 000F7EFB2F6EDBF50006C2E1 /* Secrets.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4MUC8K263B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Gen​Stat​Widget/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Gen​Stat​Widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.2;
+				PRODUCT_BUNDLE_IDENTIFIER = "studio.offbyone.KohlerStat.Gen-Stat-Widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -475,6 +655,15 @@
 			buildConfigurations = (
 				007EFCB82F6DEC670001C47F /* Debug */,
 				007EFCB92F6DEC670001C47F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		00E055692F70B20100A0FDEE /* Build configuration list for PBXNativeTarget "Gen​Stat​WidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00E055662F70B20100A0FDEE /* Debug */,
+				00E055672F70B20100A0FDEE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
