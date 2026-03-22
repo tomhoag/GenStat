@@ -1,6 +1,6 @@
 # Generator Monitoring Service
 
-A Python script that reads real-time status data from a Kohler RDT transfer switch via RS-232 serial port and publishes state changes to Supabase and Homebridge (HomeKit).
+A Python script that reads real-time status data from a Kohler RDT transfer switch via RS-232 serial port and publishes state changes to Supabase, Homebridge (HomeKit), and Apple Push Notification service (APNs).
 
 ---
 
@@ -14,8 +14,6 @@ The serial chain is:
 Kohler RDT Transfer Switch
   RS-232 port (DB9 female, P7 on MPAC 500 board)
         ↕  DB9 male-to-female flat ribbon cable
-  null modem cable (crosses TX/RX)
-        ↕  
   FTDI USB-to-RS232 adapter (DB9 male, FTDI chipset)
         ↕  USB
   Raspberry Pi 2B
@@ -23,8 +21,6 @@ Kohler RDT Transfer Switch
 ```
 
 A flat ribbon cable routes from P7 through a gap in the transfer switch enclosure to the FTDI adapter. The FTDI adapter handles RS-232 level conversion internally and connects to the Pi via USB — no separate level converter or GPIO wiring is required.
-
-> **Important:** A **null modem cable** is required between the transfer switch and the FTDI adapter. The MPAC 500 and the FTDI adapter are both DTE devices, so a straight-through cable will not work — pins 2 and 3 (TX and RX) must be crossed. In this installation a DB9 male-to-female null modem cable is used in series with the ribbon cable.
 
 The same FTDI adapter can be plugged into a Mac for initial verification of the serial data format before deploying to the Pi.
 
@@ -75,18 +71,20 @@ The script determines system state from voltage readings alone — no flag depen
 
 ## What Happens on State Change
 
-When the state changes, the script publishes to two destinations:
+When the state changes, the script publishes to three destinations:
 
 1. **Supabase** — Inserts an event row into `generator_events` and upserts the current status in `generator_status`. Tracks generator runtime hours (outage only, exercise excluded).
 2. **Homebridge** — HTTP webhook updates two HomeKit occupancy sensors (`generator_active` and `utility_power`). See the [root README](../README.md#homekit-integration) for HomeKit details.
+3. **APNs** — Native iOS push notification sent directly to all registered devices via HTTP/2. Only actionable transitions trigger a notification: outage start, critical failure, and power restored. Weekly test start/end is routine and does not notify.
 
 ---
 
 ## Requirements
 
 - Python 3.7+
-- `pyserial` (see `requirements.txt`)
-- Raspberry Pi with a USB port (for the FTDI adapter), or `--mock` mode for development without hardware
+- `pyserial`, `httpx[http2]`, `PyJWT[crypto]` (see `requirements.txt`)
+- Raspberry Pi with USB serial adapter, or `--mock` mode for development without hardware
+- APNs signing key (`.p8` file) in the project root for push notifications
 
 ---
 
@@ -99,6 +97,7 @@ Copy the `monitoring/` directory and `Secrets.xcconfig` to the Pi, preserving th
 ```
 GenStat/                        ← project root on the Pi
 ├── Secrets.xcconfig            ← credentials (gitignored, manually copied)
+├── AuthKey_Y4GY3CS3CF.p8      ← APNs signing key (gitignored, manually copied)
 └── monitoring/
     └── generator_monitor.py
 ```
@@ -129,19 +128,7 @@ Available mock scenarios: `normal`, `weekly_test`, `outage`, `critical`, `all_st
 
 ### 4. Run as a systemd service
 
-Use the provided `install.sh` script to install and enable the service in one step:
-
-```bash
-sudo bash /home/tomhoag/GenStat/monitoring/install.sh
-```
-
-This writes the systemd unit file, enables the service at boot, starts it immediately, and prints the current status. To follow logs after installation:
-
-```bash
-journalctl -u generator-monitor -f
-```
-
-Alternatively, to install manually:
+To start automatically on boot and restart on failure, create a systemd unit file:
 
 ```ini
 # /etc/systemd/system/generator-monitor.service
@@ -152,11 +139,11 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/tomhoag/GenStat/monitoring/generator_monitor.py
-WorkingDirectory=/home/tomhoag/GenStat/monitoring
+ExecStart=/usr/bin/python3 /home/pi/GenStat/monitoring/generator_monitor.py
+WorkingDirectory=/home/pi/GenStat/monitoring
 Restart=on-failure
 RestartSec=30
-User=tomhoag
+User=pi
 
 [Install]
 WantedBy=multi-user.target
@@ -181,6 +168,8 @@ The following constants at the top of `generator_monitor.py` can be adjusted:
 | `READ_TIMEOUT` | `60` | Seconds to wait for a complete data block |
 | `POLL_INTERVAL` | `35` | Seconds between status checks |
 | `VOLTAGE_PRESENT` | `90` | Volts — below this is considered "no power" |
+| `APNS_ENABLED` | `True` | Enable APNs push notifications |
+| `APNS_USE_SANDBOX` | `True` | Use APNs sandbox (development) server |
 | `HOMEBRIDGE_ENABLED` | `True` | Enable Homebridge webhook updates |
 | `HOMEBRIDGE_HOST` | `192.168.1.35` | Homebridge Pi IP address |
 | `HOMEBRIDGE_WEBHOOK_PORT` | `51828` | Homebridge webhook port |

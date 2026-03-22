@@ -11,10 +11,14 @@ States:
   CRITICAL        - Utility down, generator not running
 
 Serial connection:
-  Device : /dev/ttyUSB0  (FTDI USB-to-RS232 adapter via null modem cable)
+  Device : /dev/ttyUSB0  (FTDI USB-to-RS232 adapter)
   Baud   : 19200
   Data   : 8N1
   Flow   : XON/XOFF
+
+Notifications:
+  Push notifications are sent directly to iOS devices via APNs HTTP/2
+  using httpx + PyJWT. The .p8 signing key must be in the project root.
 
 Run (real hardware):
   python3 generator_monitor.py
@@ -29,6 +33,7 @@ Available scenarios: normal, weekly_test, outage, critical, all_states
 
 import serial
 import time
+import os
 import re
 import logging
 import argparse
@@ -251,13 +256,21 @@ class MockSerial:
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-SERIAL_PORT = "/dev/ttyUSB0"
+SERIAL_PORT     = "/dev/ttyUSB0"
 BAUD_RATE       = 19200
 READ_TIMEOUT    = 60        # seconds to wait for a complete data block
 POLL_INTERVAL   = 35        # seconds between status checks (data arrives ~30s)
 
 # Voltage thresholds — adjust if needed after seeing real data
 VOLTAGE_PRESENT = 90        # volts — below this is considered "no power"
+
+# APNs configuration — sends push notifications directly to iOS devices via HTTP/2
+APNS_ENABLED     = True
+APNS_KEY_PATH    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "AuthKey_Y4GY3CS3CF.p8")
+APNS_KEY_ID      = "Y4GY3CS3CF"
+APNS_TEAM_ID     = "L6BVR86H7Q"
+APNS_BUNDLE_ID   = "studio.offbyone.KohlerStat"
+APNS_USE_SANDBOX = True     # False for production
 
 # Homebridge webhook configuration
 HOMEBRIDGE_ENABLED      = True
@@ -303,7 +316,7 @@ def _load_secrets():
                 continue
             if "=" in line:
                 key, _, value = line.partition("=")
-                secrets[key.strip()] = value.strip().replace("$()", "")
+                secrets[key.strip()] = value.strip()
     return secrets
 
 
@@ -633,6 +646,104 @@ def publish_to_supabase(old_state, new_state, data, duration_seconds):
     supabase_upsert("generator_status", status)
 
 
+# ── APNs push notifications ──────────────────────────────────────────────────
+
+_apns_token = None
+_apns_token_time = 0
+
+
+def _get_apns_token():
+    """Return a cached APNs JWT, refreshing if older than 45 minutes."""
+    global _apns_token, _apns_token_time
+    import jwt
+    if _apns_token and (time.time() - _apns_token_time) < 2700:
+        return _apns_token
+    with open(APNS_KEY_PATH, "r") as f:
+        key = f.read()
+    _apns_token = jwt.encode(
+        {"iss": APNS_TEAM_ID, "iat": int(time.time())},
+        key,
+        algorithm="ES256",
+        headers={"kid": APNS_KEY_ID},
+    )
+    _apns_token_time = time.time()
+    log.info("APNs JWT refreshed")
+    return _apns_token
+
+
+def _get_device_tokens():
+    """Fetch active device tokens from Supabase."""
+    rows = supabase_get("device_tokens", "active=eq.true&select=token")
+    if not rows:
+        return []
+    return [row["token"] for row in rows]
+
+
+def _mark_token_inactive(token):
+    """Mark a device token as inactive in Supabase."""
+    try:
+        import urllib.request, json
+        url = f"{SUPABASE_URL}/rest/v1/device_tokens?token=eq.{token}"
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        }
+        data = json.dumps({"active": False}).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers=headers, method="PATCH")
+        urllib.request.urlopen(req, timeout=10)
+        log.info(f"Marked token ...{token[-8:]} inactive")
+    except Exception as e:
+        log.error(f"Failed to mark token inactive: {e}")
+
+
+def send_notification(title, message, priority="10"):
+    """Send push notification to all registered devices via APNs HTTP/2."""
+    if not APNS_ENABLED:
+        log.info(f"[apns disabled] {title}: {message}")
+        return
+
+    tokens = _get_device_tokens()
+    if not tokens:
+        log.info("No device tokens registered — skipping push")
+        return
+
+    import httpx
+
+    apns_host = (
+        "api.development.push.apple.com" if APNS_USE_SANDBOX
+        else "api.push.apple.com"
+    )
+    apns_jwt = _get_apns_token()
+    headers = {
+        "authorization": f"bearer {apns_jwt}",
+        "apns-topic": APNS_BUNDLE_ID,
+        "apns-push-type": "alert",
+        "apns-priority": priority,
+    }
+    payload = {
+        "aps": {
+            "alert": {"title": title, "body": message},
+            "sound": "default",
+        }
+    }
+
+    try:
+        with httpx.Client(http2=True) as client:
+            for token in tokens:
+                url = f"https://{apns_host}/3/device/{token}"
+                resp = client.post(url, headers=headers, json=payload)
+                if resp.status_code == 200:
+                    log.info(f"APNs push sent to ...{token[-8:]}")
+                elif resp.status_code == 410:
+                    log.warning(f"Token expired: ...{token[-8:]}, marking inactive")
+                    _mark_token_inactive(token)
+                else:
+                    log.error(f"APNs error {resp.status_code}: {resp.text}")
+    except Exception as e:
+        log.error(f"Failed to send APNs push: {e}")
+
+
 # ── State change handler ──────────────────────────────────────────────────────
 
 def on_state_change(old_state, new_state, data, duration_seconds=0):
@@ -655,6 +766,34 @@ def on_state_change(old_state, new_state, data, duration_seconds=0):
     elif new_state == State.CRITICAL:
         update_homebridge(ACCESSORY_GENERATOR, False)
         update_homebridge(ACCESSORY_UTILITY,   False)
+
+    # ── Send APNs push notifications ─────────────────────────────────────────
+    # Only actionable transitions trigger a notification.
+    # Weekly test start/end is routine and does not notify.
+
+    if new_state == State.OUTAGE:
+        send_notification(
+            "Power Outage",
+            f"Utility power lost. Generator is supplying the house.\n"
+            f"Generator voltage: {data.emergency_voltage}V",
+            priority="10",
+        )
+
+    elif new_state == State.CRITICAL:
+        send_notification(
+            "Generator Critical",
+            "Utility power is DOWN and generator is NOT running!\n"
+            "Immediate attention required.",
+            priority="10",
+        )
+
+    elif new_state == State.NORMAL and old_state in (State.OUTAGE, State.CRITICAL):
+        send_notification(
+            "Power Restored",
+            "Utility power is back. Generator has shut down.\n"
+            "Remember to verify your weekly exercise schedule.",
+            priority="5",
+        )
 
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
@@ -736,4 +875,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
