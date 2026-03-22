@@ -86,7 +86,7 @@ When the state changes, the script publishes to two destinations:
 
 - Python 3.7+
 - `pyserial` (see `requirements.txt`)
-- Raspberry Pi with UART enabled, or `--mock` mode for development without hardware
+- Raspberry Pi with a USB port (for the FTDI adapter), or `--mock` mode for development without hardware
 
 ---
 
@@ -129,10 +129,10 @@ Available mock scenarios: `normal`, `weekly_test`, `outage`, `critical`, `all_st
 
 ### 4. Run as a systemd service
 
-Use the provided `install_monitor.sh` script to install and enable the service in one step:
+Use the provided `install.sh` script to install and enable the service in one step:
 
 ```bash
-sudo bash /home/tomhoag/GenStat/monitoring/install_monitor.sh
+sudo bash /home/tomhoag/GenStat/monitoring/install.sh
 ```
 
 This writes the systemd unit file, enables the service at boot, starts it immediately, and prints the current status. To follow logs after installation:

@@ -9,6 +9,7 @@ A SwiftUI iPhone app for monitoring a Kohler residential standby generator and a
 - **Runtime tracking** — Total generator hours (outage only, exercise excluded), days since last exercise (highlighted in red when overdue), and last outage with duration
 - **Event log** — Chronological history of every state transition with voltage readings and duration, loaded via infinite scroll pagination
 - **Foreground refresh** — Automatic refresh on launch and when the app is brought to the foreground, with a manual refresh button
+- **Dynamic app icon** — App icon changes automatically to reflect the current generator state (green for ready, orange for running, red for critical, blue for exercising, gray for unknown)
 - **Error handling** — Dismissable error banner with automatic recovery on the next successful poll
 - **Quick-access manuals** — Toolbar menu linking to generator and transfer switch documentation
 
@@ -25,7 +26,7 @@ A SwiftUI iPhone app for monitoring a Kohler residential standby generator and a
 | Networking | `URLSession` async/await |
 | Backend | Supabase (PostgreSQL + REST API) |
 | Testing | Swift Testing framework |
-| Language | Swift 6.2, strict concurrency |
+| Language | Swift 5.0, strict concurrency |
 
 ### Project Structure
 
@@ -88,7 +89,7 @@ StatusView  EventLogView  Read monitor properties, trigger refresh
 
 - iOS 26.2 or later
 - Xcode 26.3 or later
-- Swift 6.2
+- Swift 5.0
 - A Supabase project with the tables described in the [root README](../README.md#database-schema) and RLS policies enabling anonymous `SELECT` access
 
 ---
@@ -103,7 +104,7 @@ StatusView  EventLogView  Read monitor properties, trigger refresh
 
 ## Testing
 
-The project includes 68 unit tests using the Swift Testing framework (`import Testing`), organized across five test files in the `GenStatTests/` target:
+The project includes 32 unit tests using the Swift Testing framework (`import Testing`), organized across five test files in the `GenStatTests/` target:
 
 | File | Tests | Coverage |
 |---|---|---|

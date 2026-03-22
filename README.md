@@ -2,8 +2,7 @@
 
 A complete home generator monitoring system: a Raspberry Pi reads real-time data from a Kohler transfer switch over RS-232 and writes it to Supabase, and a SwiftUI iPhone app displays the current status, runtime history, and event log.
 
-<!-- Hero image placeholder -->
-![GenStat Screenshot](docs/hero.png)
+![GenStat App Icon](GenStat/Assets.xcassets/AppIcon.appiconset/AppIcon-Light.png)
 
 ---
 
@@ -18,7 +17,7 @@ This creates several blind spots:
 - **No outage history** — The transfer switch has no accessible log. There is no way to know when the last outage occurred, how long it lasted, or how many hours the generator has accumulated.
 - **Maintenance timing** — Generator manufacturers recommend service intervals based on runtime hours, but tracking those hours manually against a machine that runs for 20 minutes a week is impractical.
 
-GenStat solves this by providing at-a-glance visibility into the operational state of the system. The monitoring service on the Raspberry Pi determines the current state from live voltage readings and publishes every state change to Supabase, Homebridge (HomeKit), and Ntfy push notifications. The iOS app reads the Supabase database and presents the information in a clear, glanceable format.
+GenStat solves this by providing at-a-glance visibility into the operational state of the system. The monitoring service on the Raspberry Pi determines the current state from live voltage readings and publishes every state change to Supabase and Homebridge (HomeKit). The iOS app reads the Supabase database, presents the information in a clear, glanceable format, and dynamically changes its app icon to reflect the current generator state.
 
 The system catches all four meaningful states:
 
@@ -60,6 +59,7 @@ GenStat/                              ← repo root
 ├── GenStatTests/                     # Swift Testing unit tests
 └── monitoring/                       # Raspberry Pi monitoring service (see monitoring/README.md)
     ├── generator_monitor.py
+    ├── install.sh
     ├── requirements.txt
     └── README.md
 ```
@@ -200,7 +200,7 @@ The relevant section of the Homebridge `config.json`:
 
 ### Behavior During Network Outage
 
-If the home network is unavailable (e.g. during a power outage where the network equipment is not on a generator-backed circuit), the HomeKit webhook calls will fail silently — the monitoring service logs the error and continues. When the network comes back up, the next state change will update the HomeKit sensors correctly. The Supabase notifications and the GenStat app follow the same pattern — they work when the network is available and catch up on the next successful connection.
+If the home network is unavailable (e.g. during a power outage where the network equipment is not on a generator-backed circuit), the HomeKit webhook calls will fail silently — the monitoring service logs the error and continues. When the network comes back up, the next state change will update the HomeKit sensors correctly. Supabase updates and the GenStat app follow the same pattern — they work when the network is available and catch up on the next successful connection.
 
 ---
 
@@ -209,7 +209,7 @@ If the home network is unavailable (e.g. during a power outage where the network
 - **Push notifications** — Alert the homeowner immediately when the generator enters a critical state or when an outage begins/ends, rather than relying on foreground refresh
 - **Widget / Live Activity** — An iOS widget or Live Activity showing current status on the Lock Screen and Home Screen
 - **Historical charts** — Visualize runtime hours, outage frequency, and voltage trends over time using Swift Charts
-- **Exercise schedule reminder** — Since the Kohler RDT clears the weekly exercise schedule after a transfer event, the monitoring service already sends a notification reminder. A future enhancement could surface this reminder in the app with a one-tap deep link to the transfer switch manual.
+- **Exercise schedule reminder** — Since the Kohler RDT clears the weekly exercise schedule after a transfer event, a future enhancement could surface a reminder in the app after an outage with a one-tap deep link to the transfer switch manual.
 - **Multiple generators** — Support monitoring more than one generator from a single app instance
 - **Localization** — Add string catalog entries for all user-facing text
 
