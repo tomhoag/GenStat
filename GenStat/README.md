@@ -26,7 +26,7 @@ A SwiftUI iPhone app for monitoring a Kohler residential standby generator and a
 | Networking | `URLSession` async/await |
 | Backend | Supabase (PostgreSQL + REST API) |
 | Testing | Swift Testing framework |
-| Language | Swift 5.0, strict concurrency |
+| Language | Swift 6.0, strict concurrency |
 
 ### Project Structure
 
@@ -89,7 +89,7 @@ StatusView  EventLogView  Read monitor properties, trigger refresh
 
 - iOS 26.2 or later
 - Xcode 26.3 or later
-- Swift 5.0
+- Swift 6.0
 - A Supabase project with the tables described in the [root README](../README.md#database-schema) and RLS policies enabling anonymous `SELECT` access
 
 ---
