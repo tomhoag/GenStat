@@ -3,7 +3,7 @@
 <div>
 <img src="hero.png" alt="GenStat App Icon" width="200" height="150" align="left" hspace="16" vspace="4">
 
-A complete home generator monitoring system: a Raspberry Pi reads real-time data from a Kohler transfer switch over RS-232 and publishes state changes to Supabase and Homebridge (HomeKit). A SwiftUI iPhone app displays the current status, runtime history, and event log, and dynamically changes its icon to reflect the generator state.
+A complete home generator monitoring system: a Raspberry Pi reads real-time data from a Kohler transfer switch over RS-232 and publishes state changes to Supabase and Homebridge (HomeKit). A SwiftUI iPhone app displays the current status, runtime history, and event log, and dynamically changes its icon to reflect the generator state. The system sends APNs push notifications for outages and critical events, and includes Home Screen and Lock Screen widgets for at-a-glance status.
 
 <br clear="both">
 </div>
@@ -21,7 +21,7 @@ This creates several blind spots:
 - **No outage history** — The transfer switch has no accessible log. There is no way to know when the last outage occurred, how long it lasted, or how many hours the generator has accumulated.
 - **Maintenance timing** — Generator manufacturers recommend service intervals based on runtime hours, but tracking those hours manually against a machine that runs for 20 minutes a week is impractical.
 
-GenStat solves this by providing at-a-glance visibility into the operational state of the system. The monitoring service on the Raspberry Pi determines the current state from live voltage readings and publishes every state change to Supabase and Homebridge (HomeKit). The iOS app reads the Supabase database, presents the information in a clear, glanceable format, and dynamically changes its app icon to reflect the current generator state.
+GenStat solves this by providing at-a-glance visibility into the operational state of the system. The monitoring service on the Raspberry Pi determines the current state from live voltage readings and publishes every state change to Supabase and Homebridge (HomeKit). The iOS app reads the Supabase database, presents the information in a clear, glanceable format, dynamically changes its app icon to reflect the current generator state, and sends push notifications when the generator enters a critical state or when an outage begins or ends. Home Screen and Lock Screen widgets provide persistent status visibility without opening the app.
 
 The system catches all four meaningful states:
 
@@ -60,12 +60,15 @@ GenStat/                              ← repo root
 │   ├── Services/
 │   ├── Views/
 │   └── README.md
+├── GenStatWidget/                    # WidgetKit extension — Home Screen and Lock Screen widgets
 ├── GenStatTests/                     # Swift Testing unit tests
-└── monitoring/                       # Raspberry Pi monitoring service (see monitoring/README.md)
-    ├── generator_monitor.py
-    ├── install.sh
-    ├── requirements.txt
-    └── README.md
+├── monitoring/                       # Raspberry Pi monitoring service (see monitoring/README.md)
+│   ├── generator_monitor.py
+│   ├── install.sh
+│   ├── requirements.txt
+│   └── README.md
+└── supabase/
+    └── schema.sql                    # Database table definitions and RLS policies
 ```
 
 > **Note:** All paths shown above reflect the expected repository structure. Verify that actual paths on your Raspberry Pi deployment match before running the monitoring service or install script.
@@ -93,15 +96,7 @@ SUPABASE_KEY = sb_publishable_...
 
 ### 2. Set up Supabase
 
-Create a [Supabase](https://supabase.com) project and set up the two tables described in the [Database Schema](#database-schema) section below. Add Row Level Security policies allowing anonymous reads:
-
-```sql
-CREATE POLICY "Allow anonymous read" ON generator_status
-    FOR SELECT TO anon USING (true);
-
-CREATE POLICY "Allow anonymous read" ON generator_events
-    FOR SELECT TO anon USING (true);
-```
+Create a [Supabase](https://supabase.com) project and set up the three tables described in the [Database Schema](#database-schema) section below. The complete SQL for all tables, indexes, triggers, and RLS policies is provided in [`supabase/schema.sql`](supabase/schema.sql) — run it in the Supabase SQL editor to set up the entire schema at once.
 
 ### 3. Component-specific setup
 
@@ -112,7 +107,7 @@ CREATE POLICY "Allow anonymous read" ON generator_events
 
 ## Database Schema
 
-All monitoring data is stored in **Supabase** (hosted PostgreSQL with REST API). Two tables are used:
+All monitoring data is stored in **Supabase** (hosted PostgreSQL with REST API). Three tables are used:
 
 **`generator_status`** (single row, id = 1)
 
@@ -140,7 +135,18 @@ All monitoring data is stored in **Supabase** (hosted PostgreSQL with REST API).
 | `generator_voltage` | `float` | Voltage at time of event |
 | `duration_seconds` | `int` | How long the previous state lasted |
 
-Both tables use Row Level Security with policies allowing anonymous read access (for the iOS app) and anon-role write access (for the monitoring service).
+**`device_tokens`** (push notification registration)
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `bigint` | Auto-generated identity primary key |
+| `token` | `text` | APNs device token (unique) |
+| `platform` | `text` | Device platform, default `'ios'` |
+| `active` | `boolean` | Whether the token is currently valid, default `true` |
+| `created_at` | `timestamptz` | When the token was first registered |
+| `updated_at` | `timestamptz` | Last update (auto-maintained by trigger) |
+
+All tables use Row Level Security with policies allowing anonymous read access (for the iOS app and monitoring service) and anon-role write access (for the monitoring service and device token registration). The complete schema including indexes, triggers, and RLS policies is defined in [`supabase/schema.sql`](supabase/schema.sql).
 
 ---
 
@@ -210,10 +216,8 @@ If the home network is unavailable (e.g. during a power outage where the network
 
 ## Next Steps
 
-- **Push notifications** — Alert the homeowner immediately when the generator enters a critical state or when an outage begins/ends, rather than relying on foreground refresh
-- **Widget / Live Activity** — An iOS widget or Live Activity showing current status on the Lock Screen and Home Screen
+- **Live Activity** — An iOS Live Activity showing current status on the Lock Screen during an active outage or exercise cycle
 - **Historical charts** — Visualize runtime hours, outage frequency, and voltage trends over time using Swift Charts
-- **Exercise schedule reminder** — Since the Kohler RDT clears the weekly exercise schedule after a transfer event, a future enhancement could surface a reminder in the app after an outage with a one-tap deep link to the transfer switch manual.
 - **Multiple generators** — Support monitoring more than one generator from a single app instance
 - **Localization** — Add string catalog entries for all user-facing text
 
