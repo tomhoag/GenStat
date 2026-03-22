@@ -11,6 +11,9 @@ xcuserdata/
 # JetBrains IDE
 .idea/
 
+# Claude Code
+.claude/
+
 # Secrets
 Secrets.xcconfig
 *.p8

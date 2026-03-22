@@ -268,7 +268,7 @@ VOLTAGE_PRESENT = 90        # volts — below this is considered "no power"
 APNS_ENABLED     = True
 APNS_KEY_PATH    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "AuthKey_Y4GY3CS3CF.p8")
 APNS_KEY_ID      = "Y4GY3CS3CF"
-APNS_TEAM_ID     = "L6BVR86H7Q"
+APNS_TEAM_ID     = "4MUC8K263B"
 APNS_BUNDLE_ID   = "studio.offbyone.KohlerStat"
 APNS_USE_SANDBOX = True     # False for production
 
@@ -316,7 +316,9 @@ def _load_secrets():
                 continue
             if "=" in line:
                 key, _, value = line.partition("=")
-                secrets[key.strip()] = value.strip()
+                # Strip $() escapes used in xcconfig to prevent // being
+                # treated as a comment (e.g. https:/$()/host → https://host)
+                secrets[key.strip()] = value.strip().replace("$()", "")
     return secrets
 
 
@@ -720,11 +722,13 @@ def send_notification(title, message, priority="10"):
         "apns-topic": APNS_BUNDLE_ID,
         "apns-push-type": "alert",
         "apns-priority": priority,
+        "apns-expiration": str(int(time.time()) + 3600),
     }
     payload = {
         "aps": {
             "alert": {"title": title, "body": message},
             "sound": "default",
+            "interruption-level": "time-sensitive",
         }
     }
 
@@ -734,7 +738,8 @@ def send_notification(title, message, priority="10"):
                 url = f"https://{apns_host}/3/device/{token}"
                 resp = client.post(url, headers=headers, json=payload)
                 if resp.status_code == 200:
-                    log.info(f"APNs push sent to ...{token[-8:]}")
+                    apns_id = resp.headers.get("apns-id", "unknown")
+                    log.info(f"APNs push sent to ...{token[-8:]} (apns-id: {apns_id})")
                 elif resp.status_code == 410:
                     log.warning(f"Token expired: ...{token[-8:]}, marking inactive")
                     _mark_token_inactive(token)
@@ -813,7 +818,54 @@ def main():
         "--block-delay", type=float, default=2.0,
         help="Seconds between mock data blocks (default: 2)"
     )
+    parser.add_argument(
+        "--test-push", action="store_true",
+        help="Send a test push notification with verbose logging, then exit"
+    )
     args = parser.parse_args()
+
+    if args.test_push:
+        import httpx, json
+        log.info("=== APNs Test Push ===")
+        tokens = _get_device_tokens()
+        log.info(f"Device tokens from Supabase: {tokens}")
+        if not tokens:
+            log.error("No active device tokens found — cannot test push")
+            return
+        apns_host = (
+            "api.development.push.apple.com" if APNS_USE_SANDBOX
+            else "api.push.apple.com"
+        )
+        log.info(f"APNs host: {apns_host}")
+        log.info(f"Bundle ID: {APNS_BUNDLE_ID}")
+        log.info(f"Key ID: {APNS_KEY_ID}, Team ID: {APNS_TEAM_ID}")
+        apns_jwt = _get_apns_token()
+        log.info(f"JWT generated (first 50 chars): {apns_jwt[:50]}...")
+        headers = {
+            "authorization": f"bearer {apns_jwt}",
+            "apns-topic": APNS_BUNDLE_ID,
+            "apns-push-type": "alert",
+            "apns-priority": "10",
+            "apns-expiration": str(int(time.time()) + 3600),
+        }
+        payload = {
+            "aps": {
+                "alert": {"title": "GenStat Test", "body": "Push notification test — if you see this, it works!"},
+                "sound": "default",
+                "interruption-level": "time-sensitive",
+            }
+        }
+        log.info(f"Payload: {json.dumps(payload)}")
+        with httpx.Client(http2=True) as client:
+            for token in tokens:
+                url = f"https://{apns_host}/3/device/{token}"
+                log.info(f"POST {url}")
+                resp = client.post(url, headers=headers, json=payload)
+                log.info(f"Status: {resp.status_code}")
+                log.info(f"Response headers: {dict(resp.headers)}")
+                if resp.text:
+                    log.info(f"Response body: {resp.text}")
+        return
 
     log.info("Generator monitor starting...")
 

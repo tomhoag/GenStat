@@ -120,7 +120,8 @@ struct SupabaseService {
     static func registerDeviceToken(_ token: String) async throws {
         let payload: [String: Any] = [
             "token": token,
-            "platform": "ios"
+            "platform": "ios",
+            "active": true
         ]
         let body = try JSONSerialization.data(withJSONObject: payload)
         try await post(path: "/rest/v1/device_tokens?on_conflict=token", body: body)
