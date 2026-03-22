@@ -1,6 +1,12 @@
 # Kohler GenStat
 
-<table><tr valign="top"><td width="200"><img src="hero.png" alt="GenStat App Icon" width="200" height="150"></td><td>A complete home generator monitoring system: a Raspberry Pi reads real-time data from a Kohler transfer switch over RS-232 and publishes state changes to Supabase and Homebridge (HomeKit). A SwiftUI iPhone app displays the current status, runtime history, and event log, and dynamically changes its icon to reflect the generator state.</td></tr></table>
+<div>
+<img src="hero.png" alt="GenStat App Icon" width="200" height="150" align="left" hspace="16" vspace="4">
+
+A complete home generator monitoring system: a Raspberry Pi reads real-time data from a Kohler transfer switch over RS-232 and publishes state changes to Supabase and Homebridge (HomeKit). A SwiftUI iPhone app displays the current status, runtime history, and event log, and dynamically changes its icon to reflect the generator state.
+
+<br clear="both">
+</div>
 
 ---
 
