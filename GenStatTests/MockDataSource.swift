@@ -33,7 +33,10 @@ enum TestFixtures {
     static func makeStatus(
         state: GeneratorState = .normal,
         utilityVoltage: Float? = 121.5,
-        generatorVoltage: Float? = nil
+        generatorVoltage: Float? = nil,
+        lastServiceHours: Float? = nil,
+        serviceIntervalHours: Float? = 200,
+        serviceCheckNeeded: Bool? = false
     ) -> GeneratorStatus {
         GeneratorStatus(
             id: 1,
@@ -44,7 +47,11 @@ enum TestFixtures {
             generatorRuntimeHours: 156.3,
             lastExerciseAt: .now,
             lastOutageAt: nil,
-            lastOutageDurationSeconds: nil
+            lastOutageDurationSeconds: nil,
+            exerciseScheduleCheckNeeded: nil,
+            lastServiceHours: lastServiceHours,
+            serviceIntervalHours: serviceIntervalHours,
+            serviceCheckNeeded: serviceCheckNeeded
         )
     }
 

@@ -180,4 +180,16 @@ struct GeneratorMonitorTests {
         // No additional fetches after stopping
         #expect(mock.fetchStatusCallCount == countAfterStop)
     }
+
+    // MARK: - completeServiceReminder
+
+    @Test
+    func completeServiceReminderDoesNothingWithoutStatus() async {
+        let mock = MockDataSource()
+        let monitor = GeneratorMonitor(dataSource: mock)
+        // status is nil, so completeServiceReminder should early-return
+        await monitor.completeServiceReminder()
+        // No error should be set
+        #expect(monitor.errorMessage == nil)
+    }
 }

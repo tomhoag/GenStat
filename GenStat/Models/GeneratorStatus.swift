@@ -35,4 +35,23 @@ struct GeneratorStatus: Codable {
 
     /// Whether the user should verify the RDT exercise schedule after an outage.
     let exerciseScheduleCheckNeeded: Bool?
+
+    /// Runtime hours at which the last service was performed, or nil if no service recorded.
+    let lastServiceHours: Float?
+
+    /// The service interval in hours. Defaults to 200 in the database.
+    let serviceIntervalHours: Float?
+
+    /// Whether the generator is due for service, as determined by the backend.
+    let serviceCheckNeeded: Bool?
+
+    /// Hours remaining until the next service is due, or nil if service data is unavailable.
+    var hoursUntilService: Float? {
+        guard let lastService = lastServiceHours,
+              let interval = serviceIntervalHours,
+              let runtime = generatorRuntimeHours else {
+            return nil
+        }
+        return (lastService + interval) - runtime
+    }
 }

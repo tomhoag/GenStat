@@ -148,6 +148,18 @@ struct SupabaseService {
         try await patch(path: "/rest/v1/generator_status?id=eq.1", body: body)
     }
 
+    /// Records a service completion by updating `last_service_hours` and clearing the check flag.
+    /// - Parameter hours: The current runtime hours at the time of service.
+    /// - Throws: `URLError` on network or server failure.
+    static func logServiceCompleted(atHours hours: Float) async throws {
+        let payload: [String: Any] = [
+            "last_service_hours": hours,
+            "service_check_needed": false
+        ]
+        let body = try JSONSerialization.data(withJSONObject: payload)
+        try await patch(path: "/rest/v1/generator_status?id=eq.1", body: body)
+    }
+
     /// Registers or updates the APNs device token in the `device_tokens` table.
     /// - Parameter token: The hex-encoded device token string.
     /// - Throws: `URLError` on network or server failure.

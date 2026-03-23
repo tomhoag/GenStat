@@ -3,6 +3,7 @@ import SwiftUI
 struct StatusView: View {
     var monitor: GeneratorMonitor
     @Binding var showingLog: Bool
+    @State private var showServiceConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -38,6 +39,8 @@ struct StatusView: View {
                             .foregroundStyle(lastExercisedDaysAgo > 7 ? .red : .secondary)
                         Text(lastOutageShort)
                             .foregroundStyle(.secondary)
+                        Text(nextServiceShort)
+                            .foregroundStyle(serviceHoursColor)
                     }
                     .font(.title3)
 
@@ -91,10 +94,36 @@ struct StatusView: View {
                         .padding(.horizontal)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
+
+                    if monitor.status?.serviceCheckNeeded == true {
+                        Button {
+                            showServiceConfirmation = true
+                        } label: {
+                            Label("Generator service is due.", systemImage: "wrench.and.screwdriver")
+                                .font(.caption)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal)
+                                .padding(.vertical)
+                                .frame(maxWidth: .infinity)
+                                .background(.blue.opacity(0.85), in: .rect(cornerRadius: 10))
+                        }
+                        .padding(.horizontal)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
             }
             .animation(.default, value: monitor.errorMessage)
             .animation(.default, value: monitor.status?.exerciseScheduleCheckNeeded)
+            .animation(.default, value: monitor.status?.serviceCheckNeeded)
+            .alert("Mark Service Complete?",
+                   isPresented: $showServiceConfirmation) {
+                Button("Complete Service") {
+                    Task { await monitor.completeServiceReminder() }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This will record the current runtime (\(formattedRuntimeHours) hrs) as the last service point.")
+            }
         }
     }
 
@@ -150,6 +179,24 @@ struct StatusView: View {
         } else {
             return "\(seconds)s"
         }
+    }
+
+    private var nextServiceShort: String {
+        guard let remaining = monitor.status?.hoursUntilService else {
+            return "Next Service \u{2014}"
+        }
+        if remaining <= 0 {
+            return "Service Overdue"
+        }
+        let formatted = remaining.formatted(.number.precision(.fractionLength(0)))
+        return "Next Service in \(formatted) hrs"
+    }
+
+    private var serviceHoursColor: Color {
+        guard let remaining = monitor.status?.hoursUntilService else {
+            return .secondary
+        }
+        return remaining <= 0 ? .red : .secondary
     }
 
     private var sinceText: String {
