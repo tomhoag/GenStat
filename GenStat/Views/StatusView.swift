@@ -142,7 +142,7 @@ struct StatusView: View {
 
     // MARK: - Manual URLs (replace with actual URLs)
     private static let generatorManualURL = URL(string: "https://example.com/generator-manual")!
-    private static let transferSwitchManualURL = URL(string: "https://example.com/transfer-switch-manual")!
+    private static let transferSwitchManualURL = URL(string: "http://www.fireelectronics.com/docs/Kohler%20Literature/lit/tp6346.pdf")!
 
     private var formattedRuntimeHours: String {
         guard let hours = monitor.status?.generatorRuntimeHours else { return "—" }
