@@ -12,7 +12,9 @@ The monitoring service is organized into pluggable layers with defined interface
 monitoring/
 ├── generator_monitor.py        # Orchestrator: CLI, main loop, state machine
 ├── interfaces.py               # ABCs + shared types (State, TransferSwitchData)
-├── config_secrets.py            # Secrets loading from Secrets.xcconfig
+├── config_secrets.py            # Configuration and secrets loading
+├── monitor.conf                # Operational settings (serial, APNs, Homebridge, network)
+├── supabase_client.py          # Shared Supabase HTTP client with retry logic
 ├── transfer_switch.py           # Kohler RDT reader, mock reader, serial parsing
 ├── persistence_supabase.py      # Supabase persistence backend
 ├── notifier_apns.py             # APNs push notification notifier
@@ -31,13 +33,15 @@ Three abstract base classes define the contract between layers:
 - `determine_state(data) → State`
 - `close()`
 
-**`PersistenceBackend`** — stores state changes and events
+**`PersistenceBackend`** — stores state changes, events, and device tokens
 - `publish_state_change(old_state, new_state, data, duration_seconds)`
+- `get_device_tokens() → list[str]`
+- `mark_token_inactive(token)`
 
 **`Notifier`** — sends notifications on state transitions
 - `notify_state_change(old_state, new_state, data)`
 
-Each notifier implements its own policy for which transitions warrant a notification. The orchestrator does not need to know notification-specific logic.
+Each notifier implements its own policy for which transitions warrant a notification. The orchestrator does not need to know notification-specific logic. Notifiers that need device tokens (e.g., `APNsNotifier`) receive the `PersistenceBackend` via constructor injection rather than accessing the database directly.
 
 ### Concrete Implementations
 
@@ -49,9 +53,17 @@ Each notifier implements its own policy for which transitions warrant a notifica
 | `Notifier` | `APNsNotifier` | `notifier_apns.py` |
 | `Notifier` | `HomebridgeNotifier` | `notifier_homebridge.py` |
 
+### Infrastructure
+
+**`supabase_client.py`** provides the shared Supabase HTTP access layer with `post()`, `upsert()`, `get()`, `patch()` operations and exponential backoff retry on transient network failures. Both `SupabasePersistence` and device token management use this single client.
+
+**`config_secrets.py`** loads two configuration sources:
+- `monitor.conf` — operational settings (serial port, APNs, Homebridge, network retry parameters)
+- `Secrets.xcconfig` — credentials for Supabase (gitignored)
+
 ### Extending
 
-To add a new transfer switch protocol (e.g., CT clamps), implement `TransferSwitchReader` in a new file. To swap Supabase for another database, implement `PersistenceBackend`. The orchestrator wires components together in `main()`.
+To add a new transfer switch protocol (e.g., CT clamps), implement `TransferSwitchReader` in a new file. To swap Supabase for another database, implement `PersistenceBackend` — notifiers will automatically use the new backend for device tokens since they access tokens through the interface, not Supabase directly. The orchestrator wires components together in `main()`.
 
 ---
 
@@ -154,6 +166,8 @@ GenStat/                        ← project root on the Pi
     ├── generator_monitor.py
     ├── interfaces.py
     ├── config_secrets.py
+    ├── monitor.conf
+    ├── supabase_client.py
     ├── transfer_switch.py
     ├── persistence_supabase.py
     ├── notifier_apns.py
@@ -223,19 +237,39 @@ sudo systemctl start generator-monitor
 
 ## Configuration
 
-Configuration constants are distributed across the modules that own them:
+All operational settings are in **`monitor.conf`** (INI format). Edit this file to change behavior without modifying code:
 
-| Constant | Default | File | Description |
-|---|---|---|---|
-| `SERIAL_PORT` | `/dev/ttyUSB0` | `transfer_switch.py` | FTDI USB-to-RS232 adapter |
-| `BAUD_RATE` | `19200` | `transfer_switch.py` | Kohler RDT serial speed |
-| `READ_TIMEOUT` | `60` | `transfer_switch.py` | Seconds to wait for a complete data block |
-| `VOLTAGE_PRESENT` | `90` | `transfer_switch.py` | Volts — below this is considered "no power" |
-| `POLL_INTERVAL` | `35` | `generator_monitor.py` | Seconds between status checks |
-| `APNS_ENABLED` | `True` | `notifier_apns.py` | Enable APNs push notifications |
-| `APNS_USE_SANDBOX` | `True` | `notifier_apns.py` | Use APNs sandbox (development) server |
+```ini
+[serial]
+port = /dev/ttyUSB0
+baud_rate = 19200
+read_timeout = 60
+voltage_threshold = 90
 
-`HomebridgeNotifier` accepts `host`, `port`, and `enabled` as constructor arguments (defaults: `192.168.1.35`, `51828`, `True`).
+[monitor]
+poll_interval = 35
+
+[apns]
+enabled = true
+key_id = Y4GY3CS3CF
+team_id = 4MUC8K263B
+bundle_id = studio.offbyone.KohlerStat
+use_sandbox = true
+
+[homebridge]
+enabled = true
+host = 192.168.1.35
+port = 51828
+generator_id = generator_active
+utility_id = utility_power
+
+[network]
+timeout = 10
+max_retries = 3
+retry_delay = 2
+```
+
+Credentials (Supabase URL and API key) are stored separately in `Secrets.xcconfig` in the project root — see the [root README](../README.md#setup) for details.
 
 ---
 
