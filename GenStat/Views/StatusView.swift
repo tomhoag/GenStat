@@ -140,8 +140,8 @@ struct StatusView: View {
         }
     }
 
-    // MARK: - Manual URLs (replace with actual URLs)
-    private static let generatorManualURL = URL(string: "https://example.com/generator-manual")!
+    // MARK: - Manual URLs
+    private static let generatorManualURL = URL(string: "https://www.kohler.com/content/dam/kohler-com-NA/Lifestyle/PDF/PDF-tp7092.pdf")!
     private static let transferSwitchManualURL = URL(string: "http://www.fireelectronics.com/docs/Kohler%20Literature/lit/tp6346.pdf")!
 
     private var formattedRuntimeHours: String {
