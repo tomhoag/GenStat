@@ -55,7 +55,7 @@ struct StatusView: View {
                 }
             }
             .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Link(destination: Self.generatorManualURL) {
                             Label("Generator Manual", systemImage: "book")
@@ -66,6 +66,9 @@ struct StatusView: View {
                     } label: {
                         Label("Manuals", systemImage: "book")
                     }
+                }
+                ToolbarSpacer(.fixed)
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Event Log", systemImage: "list.bullet") {
                         showingLog = true
                     }
