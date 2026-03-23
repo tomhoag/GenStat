@@ -38,7 +38,6 @@ class TransferSwitchData:
         self.position            = None   # "normal" or "emergency"
         self.exerciser_active    = False
         self.test_mode_active    = False
-        self.raw_lines           = []
 
     def __repr__(self):
         return (

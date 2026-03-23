@@ -241,7 +241,6 @@ def parse_block(lines: list[str]) -> TransferSwitchData:
     Adjust regexes here if your firmware uses different text.
     """
     data = TransferSwitchData()
-    data.raw_lines = lines
 
     for line in lines:
         line = line.strip()
