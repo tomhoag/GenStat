@@ -24,3 +24,6 @@ supabase/.temp/
 # Reference files
 *.CoolTermSettings
 *.pdf
+
+# Internal planning
+FUTURE.md

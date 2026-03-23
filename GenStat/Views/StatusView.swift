@@ -155,54 +155,52 @@ struct StatusView: View {
     }
 
     private var lastExercisedShort: String {
-        guard monitor.status?.lastExerciseAt != nil else { return "Last Exercised —" }
+        guard monitor.status?.lastExerciseAt != nil else {
+            return String(localized: "Last Exercised \u{2014}")
+        }
         let days = lastExercisedDaysAgo
         if days == 0 {
-            return "Exercised Today"
-        } else if days == 1 {
-            return "Exercised 1 Day Ago"
-        } else {
-            return "Exercised \(days) Days Ago"
+            return String(localized: "Exercised Today")
         }
+        return String(localized: "Exercised \(days) Days Ago")
     }
 
     private var lastOutageShort: String {
-        guard let date = monitor.status?.lastOutageAt else { return "Last Outage —" }
+        guard let date = monitor.status?.lastOutageAt else {
+            return String(localized: "Last Outage \u{2014}")
+        }
         let days = Calendar.current.dateComponents([.day], from: date, to: .now).day ?? 0
         let duration = monitor.status?.lastOutageDurationSeconds
         let durationSuffix = duration.map { " (\(formattedDuration($0)))" } ?? ""
         if days == 0 {
-            return "Last Outage Today\(durationSuffix)"
-        } else if days == 1 {
-            return "Last Outage 1 Day Ago\(durationSuffix)"
-        } else {
-            return "Last Outage \(days) Days Ago\(durationSuffix)"
+            return String(localized: "Last Outage Today\(durationSuffix)")
         }
+        return String(localized: "Last Outage \(days) Days Ago\(durationSuffix)")
     }
 
     private func formattedDuration(_ seconds: Int) -> String {
         let hours = seconds / 3600
         let minutes = (seconds % 3600) / 60
         if hours > 0 && minutes > 0 {
-            return "\(hours)h \(minutes)m"
+            return String(localized: "\(hours)h \(minutes)m")
         } else if hours > 0 {
-            return "\(hours)h"
+            return String(localized: "\(hours)h")
         } else if minutes > 0 {
-            return "\(minutes)m"
+            return String(localized: "\(minutes)m")
         } else {
-            return "\(seconds)s"
+            return String(localized: "\(seconds)s")
         }
     }
 
     private var nextServiceShort: String {
         guard let remaining = monitor.status?.hoursUntilService else {
-            return "Next Service \u{2014}"
+            return String(localized: "Next Service \u{2014}")
         }
         if remaining <= 0 {
-            return "Service Overdue"
+            return String(localized: "Service Overdue")
         }
         let formatted = remaining.formatted(.number.precision(.fractionLength(0)))
-        return "Next Service in \(formatted) hrs"
+        return String(localized: "Next Service in \(formatted) hrs")
     }
 
     private var serviceHoursColor: Color {
@@ -218,14 +216,14 @@ struct StatusView: View {
         }
         let interval = Date.now.timeIntervalSince(date)
         if interval < 60 {
-            return "since just now"
+            return String(localized: "since just now")
         } else if interval < 3600 {
             let minutes = Int(interval / 60)
-            return "since \(minutes) minute\(minutes == 1 ? "" : "s") ago"
+            return String(localized: "since \(minutes) minutes ago")
         } else if Calendar.current.isDateInToday(date) {
-            return "since \(date.formatted(date: .omitted, time: .shortened))"
+            return String(localized: "since \(date.formatted(date: .omitted, time: .shortened))")
         } else {
-            return "since \(date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
+            return String(localized: "since \(date.formatted(.dateTime.month(.abbreviated).day().hour().minute()))")
         }
     }
 }
@@ -238,7 +236,7 @@ struct StatusView: View {
 // MARK: - Helper Views
 
 private struct VoltageCell: View {
-    let label: String
+    let label: LocalizedStringKey
     let voltage: Float?
     let systemImage: String
 
@@ -259,8 +257,8 @@ private struct VoltageCell: View {
     }
 
     private var formattedVoltage: String {
-        guard let v = voltage else { return "— V" }
-        return "\(Int(v)) V"
+        guard let v = voltage else { return String(localized: "\u{2014} V") }
+        return String(localized: "\(Int(v)) V")
     }
 }
 
