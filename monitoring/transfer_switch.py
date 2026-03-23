@@ -15,18 +15,17 @@ import logging
 import serial
 
 from interfaces import TransferSwitchReader, TransferSwitchData, State
+from config_secrets import config
 
 log = logging.getLogger(__name__)
 
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-SERIAL_PORT     = "/dev/ttyUSB0"
-BAUD_RATE       = 19200
-READ_TIMEOUT    = 60        # seconds to wait for a complete data block
-
-# Voltage thresholds — adjust if needed after seeing real data
-VOLTAGE_PRESENT = 90        # volts — below this is considered "no power"
+SERIAL_PORT     = config.get("serial", "port")
+BAUD_RATE       = config.getint("serial", "baud_rate")
+READ_TIMEOUT    = config.getint("serial", "read_timeout")
+VOLTAGE_PRESENT = config.getint("serial", "voltage_threshold")
 
 
 # ── Mock serial port ──────────────────────────────────────────────────────────

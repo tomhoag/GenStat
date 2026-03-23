@@ -16,19 +16,20 @@ import httpx
 import jwt
 
 from interfaces import Notifier, State, TransferSwitchData
-from config_secrets import require_secret
+from config_secrets import config, require_secret
 
 log = logging.getLogger(__name__)
 
+_script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-APNS_ENABLED     = True
-APNS_KEY_PATH    = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "AuthKey_Y4GY3CS3CF.p8")
-APNS_KEY_ID      = "Y4GY3CS3CF"
-APNS_TEAM_ID     = "4MUC8K263B"
-APNS_BUNDLE_ID   = "studio.offbyone.KohlerStat"
-APNS_USE_SANDBOX = True     # False for production
+APNS_ENABLED     = config.getboolean("apns", "enabled")
+APNS_KEY_PATH    = os.path.join(_script_dir, "..", f"AuthKey_{config.get('apns', 'key_id')}.p8")
+APNS_KEY_ID      = config.get("apns", "key_id")
+APNS_TEAM_ID     = config.get("apns", "team_id")
+APNS_BUNDLE_ID   = config.get("apns", "bundle_id")
+APNS_USE_SANDBOX = config.getboolean("apns", "use_sandbox")
 
 SUPABASE_URL = require_secret("SUPABASE_URL")
 SUPABASE_KEY = require_secret("SUPABASE_KEY")
@@ -38,8 +39,33 @@ SUPABASE_HEADERS = {
     "Prefer"        : "return=minimal",
 }
 
+NETWORK_TIMEOUT = config.getint("network", "timeout")
+MAX_RETRIES     = config.getint("network", "max_retries")
+RETRY_DELAY     = config.getint("network", "retry_delay")
+
 # JWT refresh interval — tokens are refreshed before APNs' 60-minute expiry
 _JWT_REFRESH_SECONDS = 2700  # 45 minutes
+
+
+# ── HTTP helper with retry ───────────────────────────────────────────────────
+
+def _request_with_retry(method: str, url: str, **kwargs) -> httpx.Response | None:
+    """Make an HTTP request with exponential backoff retry on transient failures."""
+    kwargs.setdefault("timeout", NETWORK_TIMEOUT)
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            resp = httpx.request(method, url, **kwargs)
+            resp.raise_for_status()
+            return resp
+        except httpx.HTTPStatusError:
+            raise
+        except httpx.RequestError as e:
+            if attempt < MAX_RETRIES:
+                delay = RETRY_DELAY * (2 ** (attempt - 1))
+                log.warning(f"Network error (attempt {attempt}/{MAX_RETRIES}), retrying in {delay}s: {e}")
+                time.sleep(delay)
+            else:
+                raise
 
 
 # ── Device token management ──────────────────────────────────────────────────
@@ -48,15 +74,14 @@ def _get_device_tokens() -> list[str]:
     """Fetch active device tokens from Supabase."""
     url = f"{SUPABASE_URL}/rest/v1/device_tokens?active=eq.true&select=token"
     try:
-        resp = httpx.get(url, headers=SUPABASE_HEADERS, timeout=10)
-        resp.raise_for_status()
-        rows = resp.json()
+        resp = _request_with_retry("GET", url, headers=SUPABASE_HEADERS)
+        rows = resp.json() if resp else []
         return [row["token"] for row in rows] if rows else []
     except httpx.HTTPStatusError as e:
         log.error(f"Failed to fetch device tokens ({e.response.status_code}): {e.response.text}")
         return []
     except httpx.RequestError as e:
-        log.error(f"Failed to fetch device tokens (network): {e}")
+        log.error(f"Failed to fetch device tokens after {MAX_RETRIES} attempts: {e}")
         return []
 
 
@@ -64,13 +89,12 @@ def _mark_token_inactive(token: str) -> None:
     """Mark a device token as inactive in Supabase."""
     url = f"{SUPABASE_URL}/rest/v1/device_tokens?token=eq.{quote(token, safe='')}"
     try:
-        resp = httpx.patch(url, headers=SUPABASE_HEADERS, json={"active": False}, timeout=10)
-        resp.raise_for_status()
+        _request_with_retry("PATCH", url, headers=SUPABASE_HEADERS, json={"active": False})
         log.info(f"Marked token ...{token[-8:]} inactive")
     except httpx.HTTPStatusError as e:
         log.error(f"Failed to mark token inactive ({e.response.status_code}): {e.response.text}")
     except httpx.RequestError as e:
-        log.error(f"Failed to mark token inactive (network): {e}")
+        log.error(f"Failed to mark token inactive after {MAX_RETRIES} attempts: {e}")
 
 
 # ── Concrete implementation ──────────────────────────────────────────────────

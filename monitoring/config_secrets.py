@@ -1,22 +1,45 @@
 """
-Shared secrets loader for the generator monitoring system.
+Configuration and secrets loader for the generator monitoring system.
 
-Parses credentials from Secrets.xcconfig in the project root.
-Used by both the persistence and notification layers.
+Loads two configuration sources:
+- monitor.conf    — INI file with operational settings (committed to repo)
+- Secrets.xcconfig — credentials for Supabase (gitignored, manually created)
 """
+from __future__ import annotations
 
+import configparser
 import os
 
+_script_dir = os.path.dirname(os.path.abspath(__file__))
 
-def load_secrets():
+
+# ── monitor.conf ─────────────────────────────────────────────────────────────
+
+def load_config() -> configparser.ConfigParser:
+    """Load monitor.conf from the monitoring directory."""
+    config_path = os.path.join(_script_dir, "monitor.conf")
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(
+            f"monitor.conf not found at {config_path}\n"
+            "This file should be in the monitoring/ directory."
+        )
+    config = configparser.ConfigParser()
+    config.read(config_path)
+    return config
+
+
+config = load_config()
+
+
+# ── Secrets.xcconfig ─────────────────────────────────────────────────────────
+
+def load_secrets() -> dict[str, str]:
     """
-    Parse Secrets.xcconfig from the project root and return a dict of key→value.
+    Parse Secrets.xcconfig from the project root and return a dict of key->value.
     The file format is one assignment per line:  KEY = value
     Lines starting with // are comments and are ignored.
     """
-    script_dir   = os.path.dirname(os.path.abspath(__file__))
-    secrets_path = os.path.join(script_dir, "..", "Secrets.xcconfig")
-    secrets_path = os.path.normpath(secrets_path)
+    secrets_path = os.path.normpath(os.path.join(_script_dir, "..", "Secrets.xcconfig"))
 
     if not os.path.exists(secrets_path):
         raise FileNotFoundError(
@@ -33,7 +56,7 @@ def load_secrets():
             if "=" in line:
                 key, _, value = line.partition("=")
                 # Strip $() escapes used in xcconfig to prevent // being
-                # treated as a comment (e.g. https:/$()/host → https://host)
+                # treated as a comment (e.g. https:/$()/host -> https://host)
                 secrets[key.strip()] = value.strip().replace("$()", "")
     return secrets
 
@@ -41,7 +64,7 @@ def load_secrets():
 _secrets = load_secrets()
 
 
-def require_secret(key):
+def require_secret(key: str) -> str:
     """Get a secret value or raise ValueError if missing/placeholder."""
     value = _secrets.get(key, "")
     if not value or value.startswith("<"):

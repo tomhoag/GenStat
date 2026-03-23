@@ -10,6 +10,7 @@ import logging
 import httpx
 
 from interfaces import Notifier, State, TransferSwitchData
+from config_secrets import config
 
 log = logging.getLogger(__name__)
 
@@ -17,8 +18,12 @@ log = logging.getLogger(__name__)
 class HomebridgeNotifier(Notifier):
     """Updates Homebridge occupancy sensors on every state change."""
 
-    def __init__(self, host: str = "192.168.1.35", port: int = 51828, enabled: bool = True,
-                 generator_id: str = "generator_active", utility_id: str = "utility_power") -> None:
+    def __init__(self,
+                 host: str = config.get("homebridge", "host"),
+                 port: int = config.getint("homebridge", "port"),
+                 enabled: bool = config.getboolean("homebridge", "enabled"),
+                 generator_id: str = config.get("homebridge", "generator_id"),
+                 utility_id: str = config.get("homebridge", "utility_id")) -> None:
         self.enabled = enabled
         self.url = f"http://{host}:{port}"
         self.generator_id = generator_id

@@ -6,15 +6,15 @@ via the REST API.
 """
 from __future__ import annotations
 
-import json
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Any
 
 import httpx
 
 from interfaces import PersistenceBackend, State, TransferSwitchData
-from config_secrets import require_secret
+from config_secrets import config, require_secret
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +29,34 @@ SUPABASE_HEADERS = {
     "Prefer"        : "return=minimal",
 }
 
+NETWORK_TIMEOUT   = config.getint("network", "timeout")
+MAX_RETRIES       = config.getint("network", "max_retries")
+RETRY_DELAY       = config.getint("network", "retry_delay")
+
+
+# ── HTTP helpers with retry ──────────────────────────────────────────────────
+
+def _request_with_retry(method: str, url: str, **kwargs) -> httpx.Response | None:
+    """
+    Make an HTTP request with exponential backoff retry on transient failures.
+    Returns the response on success, or None if all retries are exhausted.
+    """
+    kwargs.setdefault("timeout", NETWORK_TIMEOUT)
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            resp = httpx.request(method, url, **kwargs)
+            resp.raise_for_status()
+            return resp
+        except httpx.HTTPStatusError:
+            raise  # don't retry client/server errors — let caller handle
+        except httpx.RequestError as e:
+            if attempt < MAX_RETRIES:
+                delay = RETRY_DELAY * (2 ** (attempt - 1))
+                log.warning(f"Network error (attempt {attempt}/{MAX_RETRIES}), retrying in {delay}s: {e}")
+                time.sleep(delay)
+            else:
+                raise
+
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 
@@ -36,13 +64,12 @@ def supabase_post(table: str, payload: dict[str, Any]) -> None:
     """POST a JSON payload to a Supabase table."""
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     try:
-        resp = httpx.post(url, headers=SUPABASE_HEADERS, json=payload, timeout=10)
-        resp.raise_for_status()
+        _request_with_retry("POST", url, headers=SUPABASE_HEADERS, json=payload)
         log.info(f"Supabase insert: {table}")
     except httpx.HTTPStatusError as e:
         log.error(f"Supabase insert {table} failed ({e.response.status_code}): {e.response.text}")
     except httpx.RequestError as e:
-        log.error(f"Supabase insert {table} network error: {e}")
+        log.error(f"Supabase insert {table} network error after {MAX_RETRIES} attempts: {e}")
 
 
 def supabase_upsert(table: str, payload: dict[str, Any]) -> None:
@@ -53,27 +80,25 @@ def supabase_upsert(table: str, payload: dict[str, Any]) -> None:
         "Prefer": "resolution=merge-duplicates,return=minimal",
     }
     try:
-        resp = httpx.post(url, headers=headers, json=payload, timeout=10)
-        resp.raise_for_status()
+        _request_with_retry("POST", url, headers=headers, json=payload)
         log.info(f"Supabase upsert: {table}")
     except httpx.HTTPStatusError as e:
         log.error(f"Supabase upsert {table} failed ({e.response.status_code}): {e.response.text}")
     except httpx.RequestError as e:
-        log.error(f"Supabase upsert {table} network error: {e}")
+        log.error(f"Supabase upsert {table} network error after {MAX_RETRIES} attempts: {e}")
 
 
 def supabase_get(table: str, params: str = "") -> list[dict[str, Any]] | None:
     """GET rows from a Supabase table. Returns parsed JSON or None on error."""
     url = f"{SUPABASE_URL}/rest/v1/{table}?{params}"
     try:
-        resp = httpx.get(url, headers=SUPABASE_HEADERS, timeout=10)
-        resp.raise_for_status()
-        return resp.json()
+        resp = _request_with_retry("GET", url, headers=SUPABASE_HEADERS)
+        return resp.json() if resp else None
     except httpx.HTTPStatusError as e:
         log.error(f"Supabase fetch {table} failed ({e.response.status_code}): {e.response.text}")
         return None
     except httpx.RequestError as e:
-        log.error(f"Supabase fetch {table} network error: {e}")
+        log.error(f"Supabase fetch {table} network error after {MAX_RETRIES} attempts: {e}")
         return None
 
 

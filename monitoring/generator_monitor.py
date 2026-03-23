@@ -38,6 +38,7 @@ import argparse
 import serial
 
 from interfaces import State, STATE_MESSAGES
+from config_secrets import config
 from transfer_switch import KohlerRDTReader, MockKohlerReader, MOCK_SCENARIOS
 from persistence_supabase import SupabasePersistence
 from notifier_apns import APNsNotifier
@@ -56,7 +57,7 @@ log = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-POLL_INTERVAL = 35        # seconds between status checks (data arrives ~30s)
+POLL_INTERVAL = config.getint("monitor", "poll_interval")
 
 
 # ── State change handler ────────────────────────────────────────────────────
