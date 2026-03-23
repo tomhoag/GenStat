@@ -59,6 +59,19 @@ When the system transitions between states, three things happen:
 
 ---
 
+## ⚠️ Safety Warning
+
+> [!CAUTION]
+> **The monitoring hardware requires physical access to the interior of an automatic transfer switch enclosure. This is extremely dangerous work that can result in severe injury or death.**
+>
+> An automatic transfer switch contains live mains voltage at all times — including on the utility input terminals — even when the generator is off and the circuit breakers inside the panel are open. The utility feed entering the enclosure from the top cannot be de-energized without disconnecting power at the utility meter. Contact with these terminals will cause severe injury or death.
+>
+> **All electrical work associated with this project must be performed by a licensed electrician.** If you are not a licensed electrician, do not open the transfer switch enclosure, do not route cables through it, and do not connect anything to the terminals or circuit boards inside.
+>
+> The software components of this project — the Python monitoring script, the iOS app, the Homebridge integration, and the Supabase backend — can all be developed and tested independently without touching the electrical hardware.
+
+---
+
 ## Hardware
 
 The system is built around a **Raspberry Pi 2B** mounted near the transfer switch, connected to the **Kohler RDT-CFNA-0100B** via its built-in RS-232 serial port.
