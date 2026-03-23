@@ -67,15 +67,22 @@ The system is built around a **Raspberry Pi 2B** mounted near the transfer switc
 Kohler RDT Transfer Switch
   RS-232 port (DB9 female, P7 on MPAC 500 board)
         ↕  DB9 male-to-female flat ribbon cable
+  Null modem adapter (DB9, crosses TX/RX lines)
+        ↕
   FTDI USB-to-RS232 adapter (DB9 male, FTDI chipset)
         ↕  USB
   Raspberry Pi 2B
   /dev/ttyUSB0
 ```
 
-A flat ribbon cable routes from P7 through a gap in the transfer switch enclosure to the FTDI adapter. The adapter handles RS-232 level conversion internally — no separate level converter or GPIO wiring needed.
+The chain has four components between the transfer switch and the Pi:
 
-The same FTDI adapter can be plugged into a Mac for initial verification of the serial data format before deploying to the Pi.
+1. **Flat ribbon cable** — a DB9 male-to-female cable that routes from the P7 connector on the MPAC 500 board out through a gap in the transfer switch enclosure. This gets the serial signal outside the panel without permanent modification.
+2. **Null modem adapter** — a DB9 crossover that swaps the TX and RX lines. The RDT's serial port is wired as DTE (like a computer), and so is the FTDI adapter — without the null modem, they'd both be transmitting on the same pin and listening on the same pin. The crossover fixes this.
+3. **FTDI USB-to-RS232 adapter** — converts the RS-232 signal levels to USB. Handles level conversion internally, so no separate MAX232 or GPIO wiring is needed.
+4. **USB to the Pi** — the FTDI adapter shows up as `/dev/ttyUSB0`.
+
+The same chain (minus the Pi) can be plugged into a Mac for initial verification of the serial data format before deploying.
 
 > For full transfer switch documentation see the [Kohler RDT Manual (TP-6346)](http://www.fireelectronics.com/docs/Kohler%20Literature/lit/tp6346.pdf).
 
