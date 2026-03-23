@@ -45,8 +45,8 @@ class GeneratorMonitor {
 
     /// Creates a monitor with the given data source.
     /// - Parameter dataSource: The provider of generator data. Defaults to ``SupabaseService``.
-    init(dataSource: any GeneratorDataFetching = SupabaseService()) {
-        self.dataSource = dataSource
+    init(dataSource: (any GeneratorDataFetching)? = nil) {
+        self.dataSource = dataSource ?? SupabaseService()
     }
 
     /// Begins periodic polling for status and events.
