@@ -57,13 +57,13 @@ struct EventRow: View {
         let hours = seconds / 3600
         let minutes = (seconds % 3600) / 60
         if hours > 0 && minutes > 0 {
-            return "\(hours)h \(minutes)m"
+            return String(localized: "\(hours)h \(minutes)m")
         } else if hours > 0 {
-            return "\(hours)h"
+            return String(localized: "\(hours)h")
         } else if minutes > 0 {
-            return "\(minutes)m"
+            return String(localized: "\(minutes)m")
         } else {
-            return "\(seconds)s"
+            return String(localized: "\(seconds)s")
         }
     }
 }

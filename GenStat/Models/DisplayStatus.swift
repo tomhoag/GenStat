@@ -14,11 +14,11 @@ enum DisplayStatus: Equatable {
     /// A human-readable label for this status.
     var label: String {
         switch self {
-        case .ready:      "Ready"
-        case .exercising: "Exercising"
-        case .running:    "Running"
-        case .critical:   "Critical"
-        case .unknown:    "Unknown"
+        case .ready:      String(localized: "Ready")
+        case .exercising: String(localized: "Exercising")
+        case .running:    String(localized: "Running")
+        case .critical:   String(localized: "Critical")
+        case .unknown:    String(localized: "Unknown")
         }
     }
 

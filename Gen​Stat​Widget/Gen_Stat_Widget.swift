@@ -13,11 +13,11 @@ enum WidgetGeneratorState: String, Codable {
 
     var label: String {
         switch self {
-        case .normal:     "Ready"
-        case .weeklyTest: "Exercising"
-        case .outage:     "Running"
-        case .critical:   "Critical"
-        case .unknown:    "Unknown"
+        case .normal:     String(localized: "Ready")
+        case .weeklyTest: String(localized: "Exercising")
+        case .outage:     String(localized: "Running")
+        case .critical:   String(localized: "Critical")
+        case .unknown:    String(localized: "Unknown")
         }
     }
 
