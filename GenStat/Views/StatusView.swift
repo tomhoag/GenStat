@@ -3,6 +3,7 @@ import SwiftUI
 struct StatusView: View {
     var monitor: GeneratorMonitor
     @Binding var showingLog: Bool
+    @State private var showExerciseConfirmation = false
     @State private var showServiceConfirmation = false
 
     var body: some View {
@@ -81,7 +82,7 @@ struct StatusView: View {
 
                     if monitor.status?.exerciseScheduleCheckNeeded == true {
                         Button {
-                            Task { await monitor.dismissExerciseReminder() }
+                            showExerciseConfirmation = true
                         } label: {
                             Text("Exercise schedule may need reprogramming after the recent outage.")
                                 .font(.caption)
@@ -115,6 +116,15 @@ struct StatusView: View {
             .animation(.default, value: monitor.errorMessage)
             .animation(.default, value: monitor.status?.exerciseScheduleCheckNeeded)
             .animation(.default, value: monitor.status?.serviceCheckNeeded)
+            .alert("Dismiss Exercise Reminder?",
+                   isPresented: $showExerciseConfirmation) {
+                Button("Dismiss") {
+                    Task { await monitor.dismissExerciseReminder() }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Confirm you have verified the weekly exercise schedule on the generator controller.")
+            }
             .alert("Mark Service Complete?",
                    isPresented: $showServiceConfirmation) {
                 Button("Complete Service") {
