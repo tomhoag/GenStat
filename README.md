@@ -218,6 +218,10 @@ If the home network is unavailable (e.g. during a power outage where the network
 
 - **Live Activity** — An iOS Live Activity showing current status on the Lock Screen during an active outage or exercise cycle
 - **Historical charts** — Visualize runtime hours, outage frequency, and voltage trends over time using Swift Charts
+- **Service reminders** — Show an in-app banner when generator maintenance is due based on runtime hours or elapsed time, with settings to configure the service interval and a way to log that service has been performed
+- **SMS notifications** — Send SMS alerts on state changes via Twilio or similar, as a fallback when push delivery depends on network/internet availability
+- **Notification preferences** — In-app settings to toggle push and SMS notifications on/off, configure the SMS phone number, and select which state transitions trigger alerts
+- **Extended telemetry** — Connect to the generator controller's Modbus interface to monitor battery voltage, coolant temperature, oil pressure, and RPM, in addition to the transfer switch data currently collected
 - **Multiple generators** — Support monitoring more than one generator from a single app instance
 - **Localization** — Add string catalog entries for all user-facing text
 
