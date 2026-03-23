@@ -1,6 +1,57 @@
 # Generator Monitoring Service
 
-A Python script that reads real-time status data from a Kohler RDT transfer switch via RS-232 serial port and publishes state changes to Supabase, Homebridge (HomeKit), and Apple Push Notification service (APNs).
+A Python service that reads real-time status data from a Kohler RDT transfer switch via RS-232 serial port and publishes state changes to Supabase, Homebridge (HomeKit), and Apple Push Notification service (APNs).
+
+---
+
+## Architecture
+
+The monitoring service is organized into pluggable layers with defined interfaces, allowing different transfer switch protocols or backend persistence to be swapped in without modifying unrelated code.
+
+```
+monitoring/
+├── generator_monitor.py        # Orchestrator: CLI, main loop, state machine
+├── interfaces.py               # ABCs + shared types (State, TransferSwitchData)
+├── config_secrets.py            # Secrets loading from Secrets.xcconfig
+├── transfer_switch.py           # Kohler RDT reader, mock reader, serial parsing
+├── persistence_supabase.py      # Supabase persistence backend
+├── notifier_apns.py             # APNs push notification notifier
+├── notifier_homebridge.py       # Homebridge webhook notifier
+├── requirements.txt
+├── install.sh
+└── README.md
+```
+
+### Interfaces (`interfaces.py`)
+
+Three abstract base classes define the contract between layers:
+
+**`TransferSwitchReader`** — reads hardware status and determines state
+- `read_status() → TransferSwitchData | None`
+- `determine_state(data) → State`
+- `close()`
+
+**`PersistenceBackend`** — stores state changes and events
+- `publish_state_change(old_state, new_state, data, duration_seconds)`
+
+**`Notifier`** — sends notifications on state transitions
+- `notify_state_change(old_state, new_state, data)`
+
+Each notifier implements its own policy for which transitions warrant a notification. The orchestrator does not need to know notification-specific logic.
+
+### Concrete Implementations
+
+| Interface | Implementation | File |
+|---|---|---|
+| `TransferSwitchReader` | `KohlerRDTReader` | `transfer_switch.py` |
+| `TransferSwitchReader` | `MockKohlerReader` | `transfer_switch.py` |
+| `PersistenceBackend` | `SupabasePersistence` | `persistence_supabase.py` |
+| `Notifier` | `APNsNotifier` | `notifier_apns.py` |
+| `Notifier` | `HomebridgeNotifier` | `notifier_homebridge.py` |
+
+### Extending
+
+To add a new transfer switch protocol (e.g., CT clamps), implement `TransferSwitchReader` in a new file. To swap Supabase for another database, implement `PersistenceBackend`. The orchestrator wires components together in `main()`.
 
 ---
 
@@ -71,11 +122,12 @@ The script determines system state from voltage readings alone — no flag depen
 
 ## What Happens on State Change
 
-When the state changes, the script publishes to three destinations:
+When the state changes, the orchestrator calls each registered component:
 
-1. **Supabase** — Inserts an event row into `generator_events` and upserts the current status in `generator_status`. Tracks generator runtime hours (outage only, exercise excluded).
-2. **Homebridge** — HTTP webhook updates two HomeKit occupancy sensors (`generator_active` and `utility_power`). See the [root README](../README.md#homekit-integration) for HomeKit details.
-3. **APNs** — Native iOS push notification sent directly to all registered devices via HTTP/2. Only actionable transitions trigger a notification: outage start, critical failure, and power restored. Weekly test start/end is routine and does not notify.
+1. **Persistence** (`SupabasePersistence`) — Inserts an event row into `generator_events` and upserts the current status in `generator_status`. Tracks generator runtime hours (outage only, exercise excluded).
+2. **Notifiers** — Each notifier decides independently whether to act:
+   - `APNsNotifier` — Sends iOS push notifications for actionable transitions only: outage start, critical failure, and power restored. Weekly test is routine and does not notify.
+   - `HomebridgeNotifier` — Updates two HomeKit occupancy sensors (`generator_active` and `utility_power`) on every state change. See the [root README](../README.md#homekit-integration) for HomeKit details.
 
 ---
 
@@ -92,14 +144,20 @@ When the state changes, the script publishes to three destinations:
 
 ### 1. Copy files to the Raspberry Pi
 
-Copy the `monitoring/` directory and `Secrets.xcconfig` to the Pi, preserving the directory structure. The script resolves `Secrets.xcconfig` relative to its own location (`../Secrets.xcconfig`), so the layout must be:
+Copy the `monitoring/` directory, `Secrets.xcconfig`, and the APNs signing key to the Pi, preserving the directory structure:
 
 ```
 GenStat/                        ← project root on the Pi
 ├── Secrets.xcconfig            ← credentials (gitignored, manually copied)
 ├── AuthKey_Y4GY3CS3CF.p8      ← APNs signing key (gitignored, manually copied)
 └── monitoring/
-    └── generator_monitor.py
+    ├── generator_monitor.py
+    ├── interfaces.py
+    ├── config_secrets.py
+    ├── transfer_switch.py
+    ├── persistence_supabase.py
+    ├── notifier_apns.py
+    └── notifier_homebridge.py
 ```
 
 ### 2. Install dependencies
@@ -125,6 +183,12 @@ python3 generator_monitor.py --mock --scenario all_states --block-delay 3
 ```
 
 Available mock scenarios: `normal`, `weekly_test`, `outage`, `critical`, `all_states`
+
+**Test push notification:**
+
+```bash
+python3 generator_monitor.py --test-push
+```
 
 ### 4. Run as a systemd service
 
@@ -159,20 +223,19 @@ sudo systemctl start generator-monitor
 
 ## Configuration
 
-The following constants at the top of `generator_monitor.py` can be adjusted:
+Configuration constants are distributed across the modules that own them:
 
-| Constant | Default | Description |
-|---|---|---|
-| `SERIAL_PORT` | `/dev/ttyUSB0` | FTDI USB-to-RS232 adapter |
-| `BAUD_RATE` | `19200` | Kohler RDT serial speed |
-| `READ_TIMEOUT` | `60` | Seconds to wait for a complete data block |
-| `POLL_INTERVAL` | `35` | Seconds between status checks |
-| `VOLTAGE_PRESENT` | `90` | Volts — below this is considered "no power" |
-| `APNS_ENABLED` | `True` | Enable APNs push notifications |
-| `APNS_USE_SANDBOX` | `True` | Use APNs sandbox (development) server |
-| `HOMEBRIDGE_ENABLED` | `True` | Enable Homebridge webhook updates |
-| `HOMEBRIDGE_HOST` | `192.168.1.35` | Homebridge Pi IP address |
-| `HOMEBRIDGE_WEBHOOK_PORT` | `51828` | Homebridge webhook port |
+| Constant | Default | File | Description |
+|---|---|---|---|
+| `SERIAL_PORT` | `/dev/ttyUSB0` | `transfer_switch.py` | FTDI USB-to-RS232 adapter |
+| `BAUD_RATE` | `19200` | `transfer_switch.py` | Kohler RDT serial speed |
+| `READ_TIMEOUT` | `60` | `transfer_switch.py` | Seconds to wait for a complete data block |
+| `VOLTAGE_PRESENT` | `90` | `transfer_switch.py` | Volts — below this is considered "no power" |
+| `POLL_INTERVAL` | `35` | `generator_monitor.py` | Seconds between status checks |
+| `APNS_ENABLED` | `True` | `notifier_apns.py` | Enable APNs push notifications |
+| `APNS_USE_SANDBOX` | `True` | `notifier_apns.py` | Use APNs sandbox (development) server |
+
+`HomebridgeNotifier` accepts `host`, `port`, and `enabled` as constructor arguments (defaults: `192.168.1.35`, `51828`, `True`).
 
 ---
 
