@@ -6,6 +6,7 @@ parses the TP-6346 data format, and determines system state from voltage reading
 
 Includes a mock reader for testing without hardware.
 """
+from __future__ import annotations
 
 import re
 import time
@@ -234,7 +235,7 @@ class MockSerial:
 
 # ── Serial data parser ────────────────────────────────────────────────────────
 
-def parse_block(lines):
+def parse_block(lines: list[str]) -> TransferSwitchData:
     """
     Parse a list of text lines into a TransferSwitchData.
     Field names match Figure 5-9 of Kohler RDT manual TP-6346.
@@ -285,7 +286,7 @@ def parse_block(lines):
     return data
 
 
-def determine_state(data):
+def determine_state(data: TransferSwitchData) -> State:
     """
     Determine system state from parsed transfer switch data.
     State is determined by voltage readings only.
@@ -314,7 +315,7 @@ def determine_state(data):
     return State.UNKNOWN
 
 
-def read_status_block(ser):
+def read_status_block(ser) -> list[str] | None:
     """
     Read lines from serial port until we have a complete status block.
     Resets when it sees a new 'Code Version' header to avoid block bleed.
@@ -359,7 +360,7 @@ def read_status_block(ser):
             if found_normal_v and found_emergency_v and found_position:
                 return lines
 
-        except Exception as e:
+        except (OSError, serial.SerialException) as e:
             log.error(f"Serial read error: {e}")
             return None
 

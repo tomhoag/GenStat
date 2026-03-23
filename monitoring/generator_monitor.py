@@ -35,6 +35,8 @@ import time
 import logging
 import argparse
 
+import serial
+
 from interfaces import State, STATE_MESSAGES
 from transfer_switch import KohlerRDTReader, MockKohlerReader, MOCK_SCENARIOS
 from persistence_supabase import SupabasePersistence
@@ -107,7 +109,7 @@ def main():
     else:
         try:
             reader = KohlerRDTReader()
-        except Exception as e:
+        except serial.SerialException as e:
             log.error(f"Could not open serial port: {e}")
             return
 

@@ -4,10 +4,14 @@ Supabase persistence backend.
 Stores generator state changes and events in a Supabase (PostgreSQL) database
 via the REST API.
 """
+from __future__ import annotations
 
 import json
 import logging
-import urllib.request
+from datetime import datetime, timezone
+from typing import Any
+
+import httpx
 
 from interfaces import PersistenceBackend, State, TransferSwitchData
 from config_secrets import require_secret
@@ -28,48 +32,52 @@ SUPABASE_HEADERS = {
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
 
-def supabase_post(table, payload):
+def supabase_post(table: str, payload: dict[str, Any]) -> None:
     """POST a JSON payload to a Supabase table."""
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
     try:
-        url = f"{SUPABASE_URL}/rest/v1/{table}"
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(url, data=data, headers=SUPABASE_HEADERS, method="POST")
-        urllib.request.urlopen(req, timeout=10)
+        resp = httpx.post(url, headers=SUPABASE_HEADERS, json=payload, timeout=10)
+        resp.raise_for_status()
         log.info(f"Supabase insert: {table}")
-    except Exception as e:
-        log.error(f"Failed to insert to Supabase {table}: {e}")
+    except httpx.HTTPStatusError as e:
+        log.error(f"Supabase insert {table} failed ({e.response.status_code}): {e.response.text}")
+    except httpx.RequestError as e:
+        log.error(f"Supabase insert {table} network error: {e}")
 
 
-def supabase_upsert(table, payload):
+def supabase_upsert(table: str, payload: dict[str, Any]) -> None:
     """UPSERT a JSON payload to a Supabase table (update or insert by primary key)."""
+    url = f"{SUPABASE_URL}/rest/v1/{table}"
+    headers = {
+        **SUPABASE_HEADERS,
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+    }
     try:
-        url = f"{SUPABASE_URL}/rest/v1/{table}"
-        headers = {
-            "apikey"       : SUPABASE_KEY,
-            "Content-Type" : "application/json",
-            "Prefer"       : "resolution=merge-duplicates,return=minimal",
-        }
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-        urllib.request.urlopen(req, timeout=10)
+        resp = httpx.post(url, headers=headers, json=payload, timeout=10)
+        resp.raise_for_status()
         log.info(f"Supabase upsert: {table}")
-    except Exception as e:
-        log.error(f"Failed to upsert to Supabase {table}: {e}")
+    except httpx.HTTPStatusError as e:
+        log.error(f"Supabase upsert {table} failed ({e.response.status_code}): {e.response.text}")
+    except httpx.RequestError as e:
+        log.error(f"Supabase upsert {table} network error: {e}")
 
 
-def supabase_get(table, params=""):
+def supabase_get(table: str, params: str = "") -> list[dict[str, Any]] | None:
     """GET rows from a Supabase table. Returns parsed JSON or None on error."""
+    url = f"{SUPABASE_URL}/rest/v1/{table}?{params}"
     try:
-        url = f"{SUPABASE_URL}/rest/v1/{table}?{params}"
-        req = urllib.request.Request(url, headers=SUPABASE_HEADERS, method="GET")
-        response = urllib.request.urlopen(req, timeout=10)
-        return json.loads(response.read().decode("utf-8"))
-    except Exception as e:
-        log.error(f"Failed to fetch from Supabase {table}: {e}")
+        resp = httpx.get(url, headers=SUPABASE_HEADERS, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except httpx.HTTPStatusError as e:
+        log.error(f"Supabase fetch {table} failed ({e.response.status_code}): {e.response.text}")
+        return None
+    except httpx.RequestError as e:
+        log.error(f"Supabase fetch {table} network error: {e}")
         return None
 
 
-def get_current_runtime_hours():
+def get_current_runtime_hours() -> tuple[float, float]:
     """Fetch current generator_runtime_hours and generator_exercise_hours from generator_status row 1."""
     rows = supabase_get("generator_status", "id=eq.1&select=generator_runtime_hours,generator_exercise_hours")
     if rows and len(rows) > 0:
@@ -84,8 +92,8 @@ def get_current_runtime_hours():
 class SupabasePersistence(PersistenceBackend):
     """Stores state changes and events in Supabase."""
 
-    def publish_state_change(self, old_state, new_state, data, duration_seconds):
-        from datetime import datetime, timezone
+    def publish_state_change(self, old_state: State, new_state: State,
+                             data: TransferSwitchData, duration_seconds: int) -> None:
         now = datetime.now(timezone.utc).isoformat()
 
         # Insert event record
@@ -99,7 +107,7 @@ class SupabasePersistence(PersistenceBackend):
         supabase_post("generator_events", event)
 
         # Build status update
-        status = {
+        status: dict[str, Any] = {
             "id"               : 1,
             "updated_at"       : now,
             "current_state"    : new_state.value,
