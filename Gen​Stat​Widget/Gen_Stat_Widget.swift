@@ -250,7 +250,7 @@ struct GenStatMediumView: View {
                         Text("\(generator, specifier: "%.0f") V")
                             .font(.subheadline)
                     } icon: {
-                        Image(systemName: "bolt.car")
+                        Image("generator_mini")
                             .foregroundStyle(.secondary)
                     }
                 }
