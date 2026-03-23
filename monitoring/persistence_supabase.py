@@ -70,11 +70,13 @@ def supabase_get(table, params=""):
 
 
 def get_current_runtime_hours():
-    """Fetch current generator_runtime_hours from generator_status row 1."""
-    rows = supabase_get("generator_status", "id=eq.1&select=generator_runtime_hours")
+    """Fetch current generator_runtime_hours and generator_exercise_hours from generator_status row 1."""
+    rows = supabase_get("generator_status", "id=eq.1&select=generator_runtime_hours,generator_exercise_hours")
     if rows and len(rows) > 0:
-        return float(rows[0].get("generator_runtime_hours") or 0.0)
-    return 0.0
+        runtime  = float(rows[0].get("generator_runtime_hours") or 0.0)
+        exercise = float(rows[0].get("generator_exercise_hours") or 0.0)
+        return runtime, exercise
+    return 0.0, 0.0
 
 
 # ── Concrete implementation ──────────────────────────────────────────────────
@@ -113,14 +115,25 @@ class SupabasePersistence(PersistenceBackend):
         if old_state == State.OUTAGE and new_state != State.WEEKLY_TEST:
             status["last_outage_duration_seconds"] = duration_seconds
             status["exercise_schedule_check_needed"] = True
-            # Accumulate runtime hours — outage only, never exercise
+
+        # Accumulate runtime hours when leaving any running state (outage or exercise)
+        if old_state in (State.OUTAGE, State.WEEKLY_TEST):
             duration_hours = duration_seconds / 3600.0
-            current_hours  = get_current_runtime_hours()
-            new_hours      = round(current_hours + duration_hours, 4)
-            status["generator_runtime_hours"] = new_hours
+            current_runtime, current_exercise = get_current_runtime_hours()
+            new_runtime = round(current_runtime + duration_hours, 4)
+            status["generator_runtime_hours"] = new_runtime
             log.info(
                 f"Generator runtime: +{duration_hours:.4f}h "
-                f"({current_hours:.4f} → {new_hours:.4f}h total)"
+                f"({current_runtime:.4f} → {new_runtime:.4f}h total)"
             )
+
+            # Accumulate exercise hours only when leaving weekly_test
+            if old_state == State.WEEKLY_TEST:
+                new_exercise = round(current_exercise + duration_hours, 4)
+                status["generator_exercise_hours"] = new_exercise
+                log.info(
+                    f"Generator exercise: +{duration_hours:.4f}h "
+                    f"({current_exercise:.4f} → {new_exercise:.4f}h total)"
+                )
 
         supabase_upsert("generator_status", status)

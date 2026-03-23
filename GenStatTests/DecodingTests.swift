@@ -64,6 +64,7 @@ struct DecodingTests {
             "utility_voltage": 121.5,
             "generator_voltage": 0.0,
             "generator_runtime_hours": 156.3,
+            "generator_exercise_hours": 42.1,
             "last_exercise_at": "2024-01-08T14:00:00Z",
             "last_outage_at": "2024-01-01T02:15:00Z",
             "last_outage_duration_seconds": 3600,
@@ -82,6 +83,7 @@ struct DecodingTests {
         #expect(status.lastExerciseAt != nil)
         #expect(status.lastOutageAt != nil)
         #expect(status.lastOutageDurationSeconds == 3600)
+        #expect(status.generatorExerciseHours == 42.1)
         #expect(status.lastServiceHours == 100.0)
         #expect(status.serviceIntervalHours == 200)
         #expect(status.serviceCheckNeeded == false)
@@ -97,6 +99,7 @@ struct DecodingTests {
             "utility_voltage": null,
             "generator_voltage": null,
             "generator_runtime_hours": null,
+            "generator_exercise_hours": null,
             "last_exercise_at": null,
             "last_outage_at": null,
             "last_outage_duration_seconds": null,
@@ -111,6 +114,7 @@ struct DecodingTests {
         #expect(status.utilityVoltage == nil)
         #expect(status.generatorVoltage == nil)
         #expect(status.generatorRuntimeHours == nil)
+        #expect(status.generatorExerciseHours == nil)
         #expect(status.lastExerciseAt == nil)
         #expect(status.lastOutageAt == nil)
         #expect(status.lastOutageDurationSeconds == nil)
@@ -258,5 +262,67 @@ struct DecodingTests {
 
         let status = try decoder.decode(GeneratorStatus.self, from: json)
         #expect(status.hoursUntilService == nil)
+    }
+
+    // MARK: - Exercise Hours Computation
+
+    @Test
+    func outageHoursComputesCorrectly() throws {
+        let json = """
+        {
+            "id": 1,
+            "updated_at": "2024-01-15T10:30:00Z",
+            "current_state": "normal",
+            "generator_runtime_hours": 250.0,
+            "generator_exercise_hours": 42.5
+        }
+        """.data(using: .utf8)!
+
+        let status = try decoder.decode(GeneratorStatus.self, from: json)
+        #expect(status.outageHours == 207.5)
+    }
+
+    @Test
+    func outageHoursIsNilWhenExerciseHoursMissing() throws {
+        let json = """
+        {
+            "id": 1,
+            "updated_at": "2024-01-15T10:30:00Z",
+            "current_state": "normal",
+            "generator_runtime_hours": 250.0
+        }
+        """.data(using: .utf8)!
+
+        let status = try decoder.decode(GeneratorStatus.self, from: json)
+        #expect(status.outageHours == nil)
+    }
+
+    @Test
+    func hasExerciseBreakdownIsTrueWhenPresent() throws {
+        let json = """
+        {
+            "id": 1,
+            "updated_at": "2024-01-15T10:30:00Z",
+            "current_state": "normal",
+            "generator_exercise_hours": 10.0
+        }
+        """.data(using: .utf8)!
+
+        let status = try decoder.decode(GeneratorStatus.self, from: json)
+        #expect(status.hasExerciseBreakdown == true)
+    }
+
+    @Test
+    func hasExerciseBreakdownIsFalseWhenAbsent() throws {
+        let json = """
+        {
+            "id": 1,
+            "updated_at": "2024-01-15T10:30:00Z",
+            "current_state": "normal"
+        }
+        """.data(using: .utf8)!
+
+        let status = try decoder.decode(GeneratorStatus.self, from: json)
+        #expect(status.hasExerciseBreakdown == false)
     }
 }

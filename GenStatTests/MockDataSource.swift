@@ -34,6 +34,7 @@ enum TestFixtures {
         state: GeneratorState = .normal,
         utilityVoltage: Float? = 121.5,
         generatorVoltage: Float? = nil,
+        generatorExerciseHours: Float? = 42.0,
         lastServiceHours: Float? = nil,
         serviceIntervalHours: Float? = 200,
         serviceCheckNeeded: Bool? = false
@@ -45,6 +46,7 @@ enum TestFixtures {
             utilityVoltage: utilityVoltage,
             generatorVoltage: generatorVoltage,
             generatorRuntimeHours: 156.3,
+            generatorExerciseHours: generatorExerciseHours,
             lastExerciseAt: .now,
             lastOutageAt: nil,
             lastOutageDurationSeconds: nil,
