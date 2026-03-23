@@ -7,9 +7,7 @@ struct StatusView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                VStack {
-                    Spacer()
-
+                VStack(spacing: 16) {
                     PowerFlowView(state: monitor.status?.currentState ?? .unknown)
                         .padding(.horizontal)
 
@@ -17,15 +15,31 @@ struct StatusView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
+                    HStack(spacing: 0) {
+                        VoltageCell(
+                            label: "Utility",
+                            voltage: monitor.status?.utilityVoltage,
+                            systemImage: "powerplug"
+                        )
+                        Divider()
+                            .frame(height: 40)
+                        VoltageCell(
+                            label: "Generator",
+                            voltage: monitor.status?.generatorVoltage,
+                            systemImage: "bolt.fill"
+                        )
+                    }
+                    .padding(.horizontal)
+
                     VStack(spacing: 4) {
-                        Text("Generator Hours: \(formattedRuntimeHours)")
+                        Text("Runtime: \(formattedRuntimeHours) hrs")
                             .foregroundStyle(.secondary)
-                        Text(lastExercisedText)
+                        Text(lastExercisedShort)
                             .foregroundStyle(lastExercisedDaysAgo > 7 ? .red : .secondary)
-                        Text(lastOutageText)
+                        Text(lastOutageShort)
                             .foregroundStyle(.secondary)
                     }
-                    .font(.callout)
+                    .font(.title3)
 
                     Spacer()
                 }
@@ -98,19 +112,19 @@ struct StatusView: View {
         return Calendar.current.dateComponents([.day], from: date, to: .now).day ?? 0
     }
 
-    private var lastExercisedText: String {
+    private var lastExercisedShort: String {
         guard monitor.status?.lastExerciseAt != nil else { return "Last Exercised —" }
         let days = lastExercisedDaysAgo
         if days == 0 {
-            return "Last Exercised Today"
+            return "Exercised Today"
         } else if days == 1 {
-            return "Last Exercised 1 Day Ago"
+            return "Exercised 1 Day Ago"
         } else {
-            return "Last Exercised \(days) Days Ago"
+            return "Exercised \(days) Days Ago"
         }
     }
 
-    private var lastOutageText: String {
+    private var lastOutageShort: String {
         guard let date = monitor.status?.lastOutageAt else { return "Last Outage —" }
         let days = Calendar.current.dateComponents([.day], from: date, to: .now).day ?? 0
         let duration = monitor.status?.lastOutageDurationSeconds
@@ -161,3 +175,34 @@ struct StatusView: View {
 //    monitor.errorMessage = "Unable to connect to server"
     return StatusView(monitor: monitor, showingLog: .constant(false))
 }
+// MARK: - Helper Views
+
+private struct VoltageCell: View {
+    let label: String
+    let voltage: Float?
+    let systemImage: String
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Image(systemName: systemImage)
+                .foregroundStyle(.secondary)
+                .imageScale(.small)
+            Text(formattedVoltage)
+                .font(.title3)
+                .fontWeight(.medium)
+                .monospacedDigit()
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var formattedVoltage: String {
+        guard let v = voltage else { return "— V" }
+        return "\(Int(v)) V"
+    }
+}
+
+
+
