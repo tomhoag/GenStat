@@ -5,6 +5,7 @@ struct StatusView: View {
     @Binding var showingLog: Bool
     @State private var showExerciseConfirmation = false
     @State private var showServiceConfirmation = false
+    @State private var showRuntimeBreakdown = false
 
     var body: some View {
         NavigationStack {
@@ -34,8 +35,21 @@ struct StatusView: View {
                     .padding(.horizontal)
 
                     VStack(spacing: 4) {
-                        Text("Runtime: \(formattedRuntimeHours) hrs")
-                            .foregroundStyle(.secondary)
+                        if monitor.status?.hasExerciseBreakdown == true {
+                            Button {
+                                showRuntimeBreakdown = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text("Runtime: \(formattedRuntimeHours) hrs")
+                                    Image(systemName: "info.circle")
+                                        .imageScale(.small)
+                                }
+                                .foregroundStyle(.secondary)
+                            }
+                        } else {
+                            Text("Runtime: \(formattedRuntimeHours) hrs")
+                                .foregroundStyle(.secondary)
+                        }
                         Text(lastExercisedShort)
                             .foregroundStyle(lastExercisedDaysAgo > 7 ? .red : .secondary)
                         Text(lastOutageShort)
@@ -137,6 +151,18 @@ struct StatusView: View {
             } message: {
                 Text("This will record the current runtime (\(formattedRuntimeHours) hrs) as the last service point.")
             }
+            .overlay {
+                if showRuntimeBreakdown {
+                    RuntimeBreakdownOverlay(
+                        totalHours: monitor.status?.generatorRuntimeHours,
+                        exerciseHours: monitor.status?.generatorExerciseHours,
+                        outageHours: monitor.status?.outageHours,
+                        isPresented: $showRuntimeBreakdown
+                    )
+                    .transition(.opacity)
+                }
+            }
+            .animation(.default, value: showRuntimeBreakdown)
         }
     }
 
@@ -245,6 +271,7 @@ private struct VoltageCell: View {
             Image(systemName: systemImage)
                 .foregroundStyle(.secondary)
                 .imageScale(.small)
+                .frame(height: 16)
             Text(formattedVoltage)
                 .font(.title3)
                 .fontWeight(.medium)

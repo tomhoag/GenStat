@@ -50,6 +50,7 @@ struct DisplayStatusTests {
             utilityVoltage: nil,
             generatorVoltage: nil,
             generatorRuntimeHours: nil,
+            generatorExerciseHours: nil,
             lastExerciseAt: nil,
             lastOutageAt: nil,
             lastOutageDurationSeconds: nil,

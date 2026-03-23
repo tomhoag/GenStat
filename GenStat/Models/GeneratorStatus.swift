@@ -21,8 +21,11 @@ struct GeneratorStatus: Codable {
     /// The current generator output voltage in volts, if available.
     let generatorVoltage: Float?
 
-    /// Total lifetime runtime hours reported by the generator controller.
+    /// Total lifetime runtime hours (outage + exercise) reported by the generator controller.
     let generatorRuntimeHours: Float?
+
+    /// Hours the generator has run during weekly exercise cycles.
+    let generatorExerciseHours: Float?
 
     /// When the generator last completed a weekly exercise cycle.
     let lastExerciseAt: Date?
@@ -53,5 +56,20 @@ struct GeneratorStatus: Codable {
             return nil
         }
         return (lastService + interval) - runtime
+    }
+
+    /// Hours the generator has run due to utility power outages.
+    /// Computed as total runtime minus exercise hours, or nil if either value is unavailable.
+    var outageHours: Float? {
+        guard let total = generatorRuntimeHours,
+              let exercise = generatorExerciseHours else {
+            return nil
+        }
+        return total - exercise
+    }
+
+    /// Whether exercise hours data is available for showing the runtime breakdown.
+    var hasExerciseBreakdown: Bool {
+        generatorExerciseHours != nil
     }
 }

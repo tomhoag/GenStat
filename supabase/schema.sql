@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS generator_status (
     utility_voltage                 real,
     generator_voltage               real,
     generator_runtime_hours         real DEFAULT 0,
+    generator_exercise_hours        real,
     last_exercise_at                timestamptz,
     last_outage_at                  timestamptz,
     last_outage_duration_seconds    int,
@@ -69,6 +70,9 @@ CREATE POLICY "Allow anonymous update" ON device_tokens FOR UPDATE TO anon USING
 ALTER TABLE generator_status ADD COLUMN IF NOT EXISTS last_service_hours real;
 ALTER TABLE generator_status ADD COLUMN IF NOT EXISTS service_interval_hours real DEFAULT 200;
 ALTER TABLE generator_status ADD COLUMN IF NOT EXISTS service_check_needed boolean DEFAULT false;
+
+-- Add exercise hours tracking column.
+ALTER TABLE generator_status ADD COLUMN IF NOT EXISTS generator_exercise_hours real;
 
 -- ── Seed data ───────────────────────────────────────────────────────────────
 
