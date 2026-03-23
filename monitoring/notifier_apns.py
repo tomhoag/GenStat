@@ -2,7 +2,8 @@
 APNs push notification notifier.
 
 Sends push notifications to iOS devices via Apple Push Notification service
-using HTTP/2 and JWT authentication.
+using HTTP/2 and JWT authentication. Device tokens are retrieved via the
+PersistenceBackend interface.
 """
 from __future__ import annotations
 
@@ -10,13 +11,12 @@ import json
 import logging
 import os
 import time
-from urllib.parse import quote
 
 import httpx
 import jwt
 
-from interfaces import Notifier, State, TransferSwitchData
-from config_secrets import config, require_secret
+from interfaces import Notifier, PersistenceBackend, State, TransferSwitchData
+from config_secrets import config
 
 log = logging.getLogger(__name__)
 
@@ -31,70 +31,8 @@ APNS_TEAM_ID     = config.get("apns", "team_id")
 APNS_BUNDLE_ID   = config.get("apns", "bundle_id")
 APNS_USE_SANDBOX = config.getboolean("apns", "use_sandbox")
 
-SUPABASE_URL = require_secret("SUPABASE_URL")
-SUPABASE_KEY = require_secret("SUPABASE_KEY")
-SUPABASE_HEADERS = {
-    "apikey"        : SUPABASE_KEY,
-    "Content-Type"  : "application/json",
-    "Prefer"        : "return=minimal",
-}
-
-NETWORK_TIMEOUT = config.getint("network", "timeout")
-MAX_RETRIES     = config.getint("network", "max_retries")
-RETRY_DELAY     = config.getint("network", "retry_delay")
-
 # JWT refresh interval — tokens are refreshed before APNs' 60-minute expiry
 _JWT_REFRESH_SECONDS = 2700  # 45 minutes
-
-
-# ── HTTP helper with retry ───────────────────────────────────────────────────
-
-def _request_with_retry(method: str, url: str, **kwargs) -> httpx.Response | None:
-    """Make an HTTP request with exponential backoff retry on transient failures."""
-    kwargs.setdefault("timeout", NETWORK_TIMEOUT)
-    for attempt in range(1, MAX_RETRIES + 1):
-        try:
-            resp = httpx.request(method, url, **kwargs)
-            resp.raise_for_status()
-            return resp
-        except httpx.HTTPStatusError:
-            raise
-        except httpx.RequestError as e:
-            if attempt < MAX_RETRIES:
-                delay = RETRY_DELAY * (2 ** (attempt - 1))
-                log.warning(f"Network error (attempt {attempt}/{MAX_RETRIES}), retrying in {delay}s: {e}")
-                time.sleep(delay)
-            else:
-                raise
-
-
-# ── Device token management ──────────────────────────────────────────────────
-
-def _get_device_tokens() -> list[str]:
-    """Fetch active device tokens from Supabase."""
-    url = f"{SUPABASE_URL}/rest/v1/device_tokens?active=eq.true&select=token"
-    try:
-        resp = _request_with_retry("GET", url, headers=SUPABASE_HEADERS)
-        rows = resp.json() if resp else []
-        return [row["token"] for row in rows] if rows else []
-    except httpx.HTTPStatusError as e:
-        log.error(f"Failed to fetch device tokens ({e.response.status_code}): {e.response.text}")
-        return []
-    except httpx.RequestError as e:
-        log.error(f"Failed to fetch device tokens after {MAX_RETRIES} attempts: {e}")
-        return []
-
-
-def _mark_token_inactive(token: str) -> None:
-    """Mark a device token as inactive in Supabase."""
-    url = f"{SUPABASE_URL}/rest/v1/device_tokens?token=eq.{quote(token, safe='')}"
-    try:
-        _request_with_retry("PATCH", url, headers=SUPABASE_HEADERS, json={"active": False})
-        log.info(f"Marked token ...{token[-8:]} inactive")
-    except httpx.HTTPStatusError as e:
-        log.error(f"Failed to mark token inactive ({e.response.status_code}): {e.response.text}")
-    except httpx.RequestError as e:
-        log.error(f"Failed to mark token inactive after {MAX_RETRIES} attempts: {e}")
 
 
 # ── Concrete implementation ──────────────────────────────────────────────────
@@ -102,7 +40,8 @@ def _mark_token_inactive(token: str) -> None:
 class APNsNotifier(Notifier):
     """Sends push notifications for actionable state transitions."""
 
-    def __init__(self) -> None:
+    def __init__(self, persistence: PersistenceBackend) -> None:
+        self._persistence = persistence
         self._jwt_token: str | None = None
         self._jwt_token_time: float = 0
 
@@ -145,7 +84,7 @@ class APNsNotifier(Notifier):
             log.info(f"[apns disabled] {title}: {message}")
             return
 
-        tokens = _get_device_tokens()
+        tokens = self._persistence.get_device_tokens()
         if not tokens:
             log.info("No device tokens registered — skipping push")
             return
@@ -170,7 +109,7 @@ class APNsNotifier(Notifier):
                         log.info(f"APNs push sent to ...{token[-8:]} (apns-id: {apns_id})")
                     elif resp.status_code == 410:
                         log.warning(f"Token expired: ...{token[-8:]}, marking inactive")
-                        _mark_token_inactive(token)
+                        self._persistence.mark_token_inactive(token)
                     else:
                         log.error(f"APNs error {resp.status_code} for ...{token[-8:]}: {resp.text}")
         except httpx.RequestError as e:
@@ -204,7 +143,7 @@ class APNsNotifier(Notifier):
     def test_push(self) -> None:
         """Send a test push notification with verbose logging."""
         log.info("=== APNs Test Push ===")
-        tokens = _get_device_tokens()
+        tokens = self._persistence.get_device_tokens()
         log.info(f"Device tokens: {len(tokens)} active")
         if not tokens:
             log.error("No active device tokens found — cannot test push")

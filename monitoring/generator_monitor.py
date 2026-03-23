@@ -95,15 +95,16 @@ def main():
     )
     args = parser.parse_args()
 
+    # Wire up components
+    persistence = SupabasePersistence()
+
     if args.test_push:
-        APNsNotifier().test_push()
+        APNsNotifier(persistence).test_push()
         return
 
     log.info("Generator monitor starting...")
 
-    # Wire up components
-    persistence = SupabasePersistence()
-    notifiers = [APNsNotifier(), HomebridgeNotifier()]
+    notifiers = [APNsNotifier(persistence), HomebridgeNotifier()]
 
     if args.mock:
         reader = MockKohlerReader(scenario=args.scenario, block_delay=args.block_delay)

@@ -6,6 +6,7 @@ This module defines the data structures and ABCs that all layers depend on:
 - TransferSwitchData container
 - TransferSwitchReader, PersistenceBackend, and Notifier ABCs
 """
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -70,12 +71,22 @@ class TransferSwitchReader(ABC):
 
 
 class PersistenceBackend(ABC):
-    """Interface for storing state changes and events."""
+    """Interface for storing state changes, events, and device tokens."""
 
     @abstractmethod
     def publish_state_change(self, old_state: State, new_state: State,
                              data: TransferSwitchData, duration_seconds: int) -> None:
         """Record a state transition."""
+        ...
+
+    @abstractmethod
+    def get_device_tokens(self) -> list[str]:
+        """Return a list of active device tokens for push notifications."""
+        ...
+
+    @abstractmethod
+    def mark_token_inactive(self, token: str) -> None:
+        """Mark a device token as no longer valid."""
         ...
 
 
