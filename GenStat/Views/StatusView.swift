@@ -9,7 +9,7 @@ struct StatusView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            ScrollView {
                 VStack(spacing: 16) {
                     PowerFlowView(state: monitor.status?.currentState ?? .unknown)
                         .padding(.horizontal)
@@ -28,7 +28,8 @@ struct StatusView: View {
                             .frame(height: 40)
                         VoltageCell(
                             label: "Generator",
-                            voltage: monitor.status?.generatorVoltage,
+                            voltage: generatorVoltageDisplay,
+                            offWhenNil: monitor.status?.currentState == .normal,
                             systemImage: "bolt.fill"
                         )
                     }
@@ -58,15 +59,12 @@ struct StatusView: View {
                             .foregroundStyle(serviceHoursColor)
                     }
                     .font(.title3)
-
-                    Spacer()
                 }
                 .padding()
-
-                if monitor.isLoading {
-                    ProgressView()
-                        .controlSize(.large)
-                }
+            }
+            .refreshable {
+                await monitor.refreshStatus()
+                await monitor.refreshEvents()
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -170,6 +168,12 @@ struct StatusView: View {
     private static let generatorManualURL = URL(string: "https://www.kohler.com/content/dam/kohler-com-NA/Lifestyle/PDF/PDF-tp7092.pdf")!
     private static let transferSwitchManualURL = URL(string: "http://www.fireelectronics.com/docs/Kohler%20Literature/lit/tp6346.pdf")!
 
+    /// Returns nil when the generator is in normal state to suppress noise readings.
+    private var generatorVoltageDisplay: Float? {
+        guard monitor.status?.currentState != .normal else { return nil }
+        return monitor.status?.generatorVoltage
+    }
+
     private var formattedRuntimeHours: String {
         guard let hours = monitor.status?.generatorRuntimeHours else { return "—" }
         return hours.formatted(.number.precision(.fractionLength(1)))
@@ -264,6 +268,7 @@ struct StatusView: View {
 private struct VoltageCell: View {
     let label: LocalizedStringKey
     let voltage: Float?
+    var offWhenNil: Bool = false
     let systemImage: String
 
     var body: some View {
@@ -284,7 +289,9 @@ private struct VoltageCell: View {
     }
 
     private var formattedVoltage: String {
-        guard let v = voltage else { return String(localized: "\u{2014} V") }
+        guard let v = voltage else {
+            return offWhenNil ? String(localized: "Off") : String(localized: "\u{2014} V")
+        }
         return String(localized: "\(Int(v)) V")
     }
 }
