@@ -113,6 +113,18 @@ class GeneratorMonitor {
         }
     }
 
+    /// Records that the generator has been serviced at its current runtime hours,
+    /// clears the service reminder flag, and refreshes local status.
+    func completeServiceReminder() async {
+        guard let currentHours = status?.generatorRuntimeHours else { return }
+        do {
+            try await SupabaseService.logServiceCompleted(atHours: currentHours)
+            await refreshStatus()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Loads the next page of older events and appends them to ``events``.
     ///
     /// Does nothing if a page load is already in progress or all events

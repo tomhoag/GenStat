@@ -52,7 +52,11 @@ struct DisplayStatusTests {
             generatorRuntimeHours: nil,
             lastExerciseAt: nil,
             lastOutageAt: nil,
-            lastOutageDurationSeconds: nil
+            lastOutageDurationSeconds: nil,
+            exerciseScheduleCheckNeeded: nil,
+            lastServiceHours: nil,
+            serviceIntervalHours: nil,
+            serviceCheckNeeded: nil
         )
         #expect(DisplayStatus.from(status) == expected)
     }

@@ -3,6 +3,8 @@ import SwiftUI
 struct StatusView: View {
     var monitor: GeneratorMonitor
     @Binding var showingLog: Bool
+    @State private var showExerciseConfirmation = false
+    @State private var showServiceConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -38,6 +40,8 @@ struct StatusView: View {
                             .foregroundStyle(lastExercisedDaysAgo > 7 ? .red : .secondary)
                         Text(lastOutageShort)
                             .foregroundStyle(.secondary)
+                        Text(nextServiceShort)
+                            .foregroundStyle(serviceHoursColor)
                     }
                     .font(.title3)
 
@@ -51,7 +55,7 @@ struct StatusView: View {
                 }
             }
             .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Link(destination: Self.generatorManualURL) {
                             Label("Generator Manual", systemImage: "book")
@@ -62,6 +66,9 @@ struct StatusView: View {
                     } label: {
                         Label("Manuals", systemImage: "book")
                     }
+                }
+                ToolbarSpacer(.fixed)
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Event Log", systemImage: "list.bullet") {
                         showingLog = true
                     }
@@ -78,7 +85,7 @@ struct StatusView: View {
 
                     if monitor.status?.exerciseScheduleCheckNeeded == true {
                         Button {
-                            Task { await monitor.dismissExerciseReminder() }
+                            showExerciseConfirmation = true
                         } label: {
                             Text("Exercise schedule may need reprogramming after the recent outage.")
                                 .font(.caption)
@@ -91,16 +98,51 @@ struct StatusView: View {
                         .padding(.horizontal)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
+
+                    if monitor.status?.serviceCheckNeeded == true {
+                        Button {
+                            showServiceConfirmation = true
+                        } label: {
+                            Label("Generator service is due.", systemImage: "wrench.and.screwdriver")
+                                .font(.caption)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal)
+                                .padding(.vertical)
+                                .frame(maxWidth: .infinity)
+                                .background(.blue.opacity(0.85), in: .rect(cornerRadius: 10))
+                        }
+                        .padding(.horizontal)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
             }
             .animation(.default, value: monitor.errorMessage)
             .animation(.default, value: monitor.status?.exerciseScheduleCheckNeeded)
+            .animation(.default, value: monitor.status?.serviceCheckNeeded)
+            .alert("Dismiss Exercise Reminder?",
+                   isPresented: $showExerciseConfirmation) {
+                Button("Dismiss") {
+                    Task { await monitor.dismissExerciseReminder() }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Confirm you have verified the weekly exercise schedule on the generator controller.")
+            }
+            .alert("Mark Service Complete?",
+                   isPresented: $showServiceConfirmation) {
+                Button("Complete Service") {
+                    Task { await monitor.completeServiceReminder() }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This will record the current runtime (\(formattedRuntimeHours) hrs) as the last service point.")
+            }
         }
     }
 
-    // MARK: - Manual URLs (replace with actual URLs)
-    private static let generatorManualURL = URL(string: "https://example.com/generator-manual")!
-    private static let transferSwitchManualURL = URL(string: "https://example.com/transfer-switch-manual")!
+    // MARK: - Manual URLs
+    private static let generatorManualURL = URL(string: "https://www.kohler.com/content/dam/kohler-com-NA/Lifestyle/PDF/PDF-tp7092.pdf")!
+    private static let transferSwitchManualURL = URL(string: "http://www.fireelectronics.com/docs/Kohler%20Literature/lit/tp6346.pdf")!
 
     private var formattedRuntimeHours: String {
         guard let hours = monitor.status?.generatorRuntimeHours else { return "—" }
@@ -150,6 +192,24 @@ struct StatusView: View {
         } else {
             return "\(seconds)s"
         }
+    }
+
+    private var nextServiceShort: String {
+        guard let remaining = monitor.status?.hoursUntilService else {
+            return "Next Service \u{2014}"
+        }
+        if remaining <= 0 {
+            return "Service Overdue"
+        }
+        let formatted = remaining.formatted(.number.precision(.fractionLength(0)))
+        return "Next Service in \(formatted) hrs"
+    }
+
+    private var serviceHoursColor: Color {
+        guard let remaining = monitor.status?.hoursUntilService else {
+            return .secondary
+        }
+        return remaining <= 0 ? .red : .secondary
     }
 
     private var sinceText: String {

@@ -66,7 +66,10 @@ struct DecodingTests {
             "generator_runtime_hours": 156.3,
             "last_exercise_at": "2024-01-08T14:00:00Z",
             "last_outage_at": "2024-01-01T02:15:00Z",
-            "last_outage_duration_seconds": 3600
+            "last_outage_duration_seconds": 3600,
+            "last_service_hours": 100.0,
+            "service_interval_hours": 200,
+            "service_check_needed": false
         }
         """.data(using: .utf8)!
 
@@ -79,6 +82,9 @@ struct DecodingTests {
         #expect(status.lastExerciseAt != nil)
         #expect(status.lastOutageAt != nil)
         #expect(status.lastOutageDurationSeconds == 3600)
+        #expect(status.lastServiceHours == 100.0)
+        #expect(status.serviceIntervalHours == 200)
+        #expect(status.serviceCheckNeeded == false)
     }
 
     @Test
@@ -93,7 +99,10 @@ struct DecodingTests {
             "generator_runtime_hours": null,
             "last_exercise_at": null,
             "last_outage_at": null,
-            "last_outage_duration_seconds": null
+            "last_outage_duration_seconds": null,
+            "last_service_hours": null,
+            "service_interval_hours": null,
+            "service_check_needed": null
         }
         """.data(using: .utf8)!
 
@@ -105,6 +114,9 @@ struct DecodingTests {
         #expect(status.lastExerciseAt == nil)
         #expect(status.lastOutageAt == nil)
         #expect(status.lastOutageDurationSeconds == nil)
+        #expect(status.lastServiceHours == nil)
+        #expect(status.serviceIntervalHours == nil)
+        #expect(status.serviceCheckNeeded == nil)
     }
 
     @Test(arguments: [
@@ -212,5 +224,39 @@ struct DecodingTests {
         #expect(events.count == 2)
         #expect(events[0].newState == .outage)
         #expect(events[1].durationSeconds == 1800)
+    }
+
+    // MARK: - Service Hours Computation
+
+    @Test
+    func hoursUntilServiceComputesCorrectly() throws {
+        let json = """
+        {
+            "id": 1,
+            "updated_at": "2024-01-15T10:30:00Z",
+            "current_state": "normal",
+            "generator_runtime_hours": 250.0,
+            "last_service_hours": 100.0,
+            "service_interval_hours": 200
+        }
+        """.data(using: .utf8)!
+
+        let status = try decoder.decode(GeneratorStatus.self, from: json)
+        #expect(status.hoursUntilService == 50.0)
+    }
+
+    @Test
+    func hoursUntilServiceIsNilWhenDataMissing() throws {
+        let json = """
+        {
+            "id": 1,
+            "updated_at": "2024-01-15T10:30:00Z",
+            "current_state": "normal",
+            "generator_runtime_hours": 250.0
+        }
+        """.data(using: .utf8)!
+
+        let status = try decoder.decode(GeneratorStatus.self, from: json)
+        #expect(status.hoursUntilService == nil)
     }
 }

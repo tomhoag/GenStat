@@ -16,7 +16,10 @@ CREATE TABLE IF NOT EXISTS generator_status (
     last_exercise_at                timestamptz,
     last_outage_at                  timestamptz,
     last_outage_duration_seconds    int,
-    exercise_schedule_check_needed  boolean DEFAULT false
+    exercise_schedule_check_needed  boolean DEFAULT false,
+    last_service_hours              real,
+    service_interval_hours          real DEFAULT 200,
+    service_check_needed            boolean DEFAULT false
 );
 
 -- Append-only log of state transitions.
@@ -59,6 +62,13 @@ CREATE POLICY "Allow anonymous insert" ON generator_events FOR INSERT TO anon WI
 CREATE POLICY "Allow anonymous read"   ON device_tokens FOR SELECT TO anon USING (true);
 CREATE POLICY "Allow anonymous insert" ON device_tokens FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY "Allow anonymous update" ON device_tokens FOR UPDATE TO anon USING (true) WITH CHECK (true);
+
+-- ── Migrations (safe to re-run) ───────────────────────────────────────────
+
+-- Add service reminder columns to existing databases.
+ALTER TABLE generator_status ADD COLUMN IF NOT EXISTS last_service_hours real;
+ALTER TABLE generator_status ADD COLUMN IF NOT EXISTS service_interval_hours real DEFAULT 200;
+ALTER TABLE generator_status ADD COLUMN IF NOT EXISTS service_check_needed boolean DEFAULT false;
 
 -- ── Seed data ───────────────────────────────────────────────────────────────
 
