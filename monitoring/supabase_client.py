@@ -72,8 +72,11 @@ def post(table: str, payload: dict[str, Any]) -> None:
         log.error(f"Supabase insert {table} network error after {MAX_RETRIES} attempts: {e}")
 
 
-def upsert(table: str, payload: dict[str, Any]) -> None:
-    """UPSERT a JSON payload to a Supabase table (update or insert by primary key)."""
+def upsert(table: str, payload: dict[str, Any]) -> bool:
+    """UPSERT a JSON payload to a Supabase table (update or insert by primary key).
+
+    Returns True on success, False on failure.
+    """
     url = f"{SUPABASE_URL}/rest/v1/{table}"
     headers = {
         **SUPABASE_HEADERS,
@@ -82,10 +85,13 @@ def upsert(table: str, payload: dict[str, Any]) -> None:
     try:
         request_with_retry("POST", url, headers=headers, json=payload)
         log.info(f"Supabase upsert: {table}")
+        return True
     except httpx.HTTPStatusError as e:
         log.error(f"Supabase upsert {table} failed ({e.response.status_code}): {e.response.text}")
+        return False
     except httpx.RequestError as e:
         log.error(f"Supabase upsert {table} network error after {MAX_RETRIES} attempts: {e}")
+        return False
 
 
 def get(table: str, params: str = "") -> list[dict[str, Any]] | None:

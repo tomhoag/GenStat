@@ -19,6 +19,10 @@ log = logging.getLogger(__name__)
 class SupabasePersistence(PersistenceBackend):
     """Stores state changes, events, and device tokens in Supabase."""
 
+    def __init__(self) -> None:
+        self._status_dirty = False
+        self._pending_status: dict[str, Any] | None = None
+
     def publish_state_change(self, old_state: State, new_state: State,
                              data: TransferSwitchData, duration_seconds: int) -> None:
         now = datetime.now(timezone.utc).isoformat()
@@ -71,7 +75,24 @@ class SupabasePersistence(PersistenceBackend):
                     f"({current_exercise:.4f} → {new_exercise:.4f}h total)"
                 )
 
-        db.upsert("generator_status", status)
+        if db.upsert("generator_status", status):
+            self._status_dirty = False
+            self._pending_status = None
+        else:
+            log.warning("generator_status upsert failed — marking dirty for retry")
+            self._status_dirty = True
+            self._pending_status = status
+
+    def retry_pending_status(self) -> None:
+        if not self._status_dirty or self._pending_status is None:
+            return
+        self._pending_status["updated_at"] = datetime.now(timezone.utc).isoformat()
+        if db.upsert("generator_status", self._pending_status):
+            log.info("Dirty generator_status retry succeeded")
+            self._status_dirty = False
+            self._pending_status = None
+        else:
+            log.warning("Dirty generator_status retry still failing")
 
     def get_device_tokens(self) -> list[str]:
         return db.get_device_tokens()

@@ -79,6 +79,10 @@ class PersistenceBackend(ABC):
         """Record a state transition."""
         ...
 
+    def retry_pending_status(self) -> None:
+        """Retry a previously failed generator_status upsert, if any."""
+        ...
+
     @abstractmethod
     def get_device_tokens(self) -> list[str]:
         """Return a list of active device tokens for push notifications."""

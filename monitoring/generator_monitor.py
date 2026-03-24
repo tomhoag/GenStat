@@ -139,6 +139,8 @@ def main():
                 on_state_change(current_state, new_state, data, duration, persistence, notifiers)
                 current_state    = new_state
                 state_entered_at = time.time()
+            else:
+                persistence.retry_pending_status()
 
             if not args.mock:
                 time.sleep(POLL_INTERVAL)
