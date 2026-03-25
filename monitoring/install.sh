@@ -31,9 +31,11 @@ if [[ ! -f "$SECRETS_PATH" ]]; then
     exit 1
 fi
 
-PYTHON=$(which python3)
-if [[ -z "$PYTHON" ]]; then
-    echo "ERROR: python3 not found on PATH"
+VENV_DIR="/home/tomhoag/GenStat/venv"
+PYTHON="${VENV_DIR}/bin/python"
+if [[ ! -x "$PYTHON" ]]; then
+    echo "ERROR: Virtual environment not found at ${VENV_DIR}"
+    echo "Create it first:  python3 -m venv ${VENV_DIR} && ${VENV_DIR}/bin/pip install -r ${WORKING_DIR}/requirements.txt"
     exit 1
 fi
 
