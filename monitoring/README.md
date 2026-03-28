@@ -1,6 +1,6 @@
 # Generator Monitoring Service
 
-The monitoring service runs on a Raspberry Pi connected to your Kohler transfer switch and watches your generator around the clock. When utility power drops, the generator kicks in, or something goes wrong, it logs the event to Supabase, updates HomeKit, and sends a push notification to your phone — typically within seconds.
+The monitoring service runs on a Raspberry Pi connected to your Kohler transfer switch and watches your generator around the clock. When utility power drops, the generator kicks in, or something goes wrong, it logs the event to Supabase and sends a push notification to your phone — typically within seconds.
 
 ---
 
@@ -49,9 +49,7 @@ When the system transitions between states, three things happen:
 
 1. **The event is recorded** — a row is inserted into Supabase with the previous state, new state, voltages, and how long the previous state lasted. Generator runtime hours are accumulated automatically.
 
-2. **HomeKit is updated** — two occupancy sensors in Homebridge (`generator_active` and `utility_power`) are set to reflect the new state, so it shows up in the Home app. See the [root README](../README.md#homekit-integration) for details.
-
-3. **You get a push notification** (for important transitions only):
+2. **You get a push notification** (for important transitions only):
    - **Outage starts** — "Utility power lost. Generator is supplying the house."
    - **Critical failure** — "Generator is NOT running! Immediate attention required."
    - **Power restored** — "Utility power is back. Check your exercise schedule."
@@ -68,7 +66,7 @@ When the system transitions between states, three things happen:
 >
 > **All electrical work associated with this project must be performed by a licensed electrician.** If you are not a licensed electrician, do not open the transfer switch enclosure, do not route cables through it, and do not connect anything to the terminals or circuit boards inside.
 >
-> The software components of this project — the Python monitoring script, the iOS app, the Homebridge integration, and the Supabase backend — can all be developed and tested independently without touching the electrical hardware.
+> The software components of this project — the Python monitoring script, the iOS app, and the Supabase backend — can all be developed and tested independently without touching the electrical hardware.
 
 ---
 
@@ -148,8 +146,7 @@ Normal Position
     ├── supabase_client.py
     ├── transfer_switch.py
     ├── persistence_supabase.py
-    ├── notifier_apns.py
-    └── notifier_homebridge.py
+    └── notifier_apns.py
 ```
 
 ### Running
@@ -224,13 +221,6 @@ team_id = 4MUC8K263B
 bundle_id = studio.offbyone.KohlerStat
 use_sandbox = true
 
-[homebridge]
-enabled = true
-host = 192.168.1.35
-port = 51828
-generator_id = generator_active
-utility_id = utility_power
-
 [network]
 timeout = 10
 max_retries = 3
@@ -255,9 +245,6 @@ Run `python3 generator_monitor.py --test-push` and check the output. Common caus
 **Supabase connection errors**
 Verify `Secrets.xcconfig` has the correct URL and key. The service retries transient network failures automatically (configurable via `[network]` in `monitor.conf`), but persistent auth errors mean the credentials are wrong.
 
-**Homebridge not updating**
-Check that the Homebridge Pi is reachable at the IP and port in `monitor.conf`. The service logs errors but continues running if Homebridge is unavailable.
-
 **Service crashes and restarts**
 Check the journal: `journalctl -u generator-monitor -f`. The systemd unit is configured to restart on failure with a 30-second delay.
 
@@ -275,12 +262,11 @@ monitoring/
 ├── generator_monitor.py        # Orchestrator: CLI, main loop, state machine
 ├── interfaces.py               # ABCs + shared types (State, TransferSwitchData)
 ├── config_secrets.py            # Configuration and secrets loading
-├── monitor.conf                # Operational settings (serial, APNs, Homebridge, network)
+├── monitor.conf                # Operational settings (serial, APNs, network)
 ├── supabase_client.py          # Shared Supabase HTTP client with retry logic
 ├── transfer_switch.py           # Kohler RDT reader, mock reader, serial parsing
 ├── persistence_supabase.py      # Supabase persistence backend
 ├── notifier_apns.py             # APNs push notification notifier
-├── notifier_homebridge.py       # Homebridge webhook notifier
 ├── requirements.txt
 ├── install.sh
 └── README.md
@@ -313,14 +299,13 @@ Each notifier implements its own policy for which transitions warrant a notifica
 | `TransferSwitchReader` | `MockKohlerReader` | `transfer_switch.py` |
 | `PersistenceBackend` | `SupabasePersistence` | `persistence_supabase.py` |
 | `Notifier` | `APNsNotifier` | `notifier_apns.py` |
-| `Notifier` | `HomebridgeNotifier` | `notifier_homebridge.py` |
 
 ### Infrastructure
 
 **`supabase_client.py`** provides the shared Supabase HTTP access layer with `post()`, `upsert()`, `get()`, `patch()` operations and exponential backoff retry on transient network failures. Both `SupabasePersistence` and device token management use this single client.
 
 **`config_secrets.py`** loads two configuration sources:
-- `monitor.conf` — operational settings (serial port, APNs, Homebridge, network retry parameters)
+- `monitor.conf` — operational settings (serial port, APNs, network retry parameters)
 - `Secrets.xcconfig` — credentials for Supabase (gitignored)
 
 ### Extending

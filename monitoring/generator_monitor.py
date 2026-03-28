@@ -42,7 +42,6 @@ from config_secrets import config
 from transfer_switch import KohlerRDTReader, MockKohlerReader, MOCK_SCENARIOS
 from persistence_supabase import SupabasePersistence
 from notifier_apns import APNsNotifier
-from notifier_homebridge import HomebridgeNotifier
 
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -104,7 +103,7 @@ def main():
 
     log.info("Generator monitor starting...")
 
-    notifiers = [APNsNotifier(persistence), HomebridgeNotifier()]
+    notifiers = [APNsNotifier(persistence)]
 
     if args.mock:
         reader = MockKohlerReader(scenario=args.scenario, block_delay=args.block_delay)

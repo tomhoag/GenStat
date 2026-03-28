@@ -3,7 +3,7 @@
 <div>
 <img src="hero.png" alt="GenStat App Icon" width="200" height="150" align="left" hspace="16" vspace="4">
 
-A complete home generator monitoring system: a Raspberry Pi reads real-time data from a Kohler transfer switch over RS-232 and publishes state changes to Supabase and Homebridge (HomeKit). A SwiftUI iPhone app displays the current status, runtime history, and event log, and dynamically changes its icon to reflect the generator state. The system sends APNs push notifications for outages and critical events, and includes Home Screen and Lock Screen widgets for at-a-glance status.
+A complete home generator monitoring system: a Raspberry Pi reads real-time data from a Kohler transfer switch over RS-232 and publishes state changes to Supabase. A SwiftUI iPhone app displays the current status, runtime history, and event log, and dynamically changes its icon to reflect the generator state. The system sends APNs push notifications for outages and critical events, and includes Home Screen and Lock Screen widgets for at-a-glance status.
 
 <br clear="both">
 </div>
@@ -21,7 +21,7 @@ This creates several blind spots:
 - **No outage history** — The transfer switch has no accessible log. There is no way to know when the last outage occurred, how long it lasted, or how many hours the generator has accumulated.
 - **Maintenance timing** — Generator manufacturers recommend service intervals based on runtime hours, but tracking those hours manually against a machine that runs for 20 minutes a week is impractical.
 
-GenStat solves this by providing at-a-glance visibility into the operational state of the system. The monitoring service on the Raspberry Pi determines the current state from live voltage readings and publishes every state change to Supabase and Homebridge (HomeKit). The iOS app reads the Supabase database, presents the information in a clear, glanceable format, dynamically changes its app icon to reflect the current generator state, and sends push notifications when the generator enters a critical state or when an outage begins or ends. Home Screen and Lock Screen widgets provide persistent status visibility without opening the app.
+GenStat solves this by providing at-a-glance visibility into the operational state of the system. The monitoring service on the Raspberry Pi determines the current state from live voltage readings and publishes every state change to Supabase. The iOS app reads the Supabase database, presents the information in a clear, glanceable format, dynamically changes its app icon to reflect the current generator state, and sends push notifications when the generator enters a critical state or when an outage begins or ends. Home Screen and Lock Screen widgets provide persistent status visibility without opening the app.
 
 The system catches all four meaningful states:
 
@@ -43,7 +43,7 @@ The system catches all four meaningful states:
 >
 > **All electrical work associated with this project must be performed by a licensed electrician.** If you are not a licensed electrician, do not open the transfer switch enclosure, do not route cables through it, and do not connect anything to the terminals or circuit boards inside.
 >
-> The software components of this project — the Python monitoring script, the iOS app, the Homebridge integration, and the Supabase backend — can all be developed and tested independently without touching the electrical hardware.
+> The software components of this project — the Python monitoring script, the iOS app, and the Supabase backend — can all be developed and tested independently without touching the electrical hardware.
 
 ---
 
@@ -154,70 +154,6 @@ All tables use Row Level Security with policies allowing anonymous read access (
 
 ---
 
-## HomeKit Integration
-
-In addition to the Supabase backend, the monitoring service integrates with **Apple HomeKit** via [**Homebridge**](https://homebridge.io), allowing generator status to appear natively in the iOS Home app alongside other smart home devices.
-
-### Infrastructure
-
-Homebridge runs elsewhere in the home. The monitoring Pi and the Homebridge Pi communicate over the local network via simple HTTP calls — the monitoring Pi sends webhook requests to Homebridge whenever the generator state changes.
-
-```
-Monitoring Pi (basement)
-    ↓ HTTP webhook (local network)
-Homebridge Pi
-    ↓ HomeKit protocol
-iOS Home app
-```
-
-### HomeKit Accessories
-
-The `homebridge-http-webhooks` plugin exposes two **occupancy sensors** in HomeKit:
-
-| Accessory | Occupied when | Unoccupied when |
-|---|---|---|
-| **Generator Active** | Generator is running (weekly test or outage) | Generator is idle |
-| **Utility Power** | Utility grid is present | Utility grid is down |
-
-From these two binary sensors all four system states can be inferred:
-
-| Generator Active | Utility Power | System State |
-|---|---|---|
-| Off | On | Normal |
-| On | On | Weekly Test |
-| On | Off | Outage |
-| Off | Off | Critical |
-
-### Homebridge Configuration
-
-The relevant section of the Homebridge `config.json`:
-
-```json
-{
-    "platform": "HttpWebHooks",
-    "webhook_port": 51828,
-    "cache_directory": "/var/lib/homebridge/.webhook-cache",
-    "sensors": [
-        {
-            "id": "generator_active",
-            "name": "Generator Active",
-            "type": "occupancy"
-        },
-        {
-            "id": "utility_power",
-            "name": "Utility Power",
-            "type": "occupancy"
-        }
-    ]
-}
-```
-
-### Behavior During Network Outage
-
-If the home network is unavailable (e.g. during a power outage where the network equipment is not on a generator-backed circuit), the HomeKit webhook calls will fail silently — the monitoring service logs the error and continues. When the network comes back up, the next state change will update the HomeKit sensors correctly. Supabase updates and the GenStat app follow the same pattern — they work when the network is available and catch up on the next successful connection.
-
----
-
 ## Next Steps
 
 - **Live Activity** — An iOS Live Activity showing current status on the Lock Screen during an active outage or exercise cycle
@@ -240,7 +176,7 @@ If the home network is unavailable (e.g. during a power outage where the network
 
 This project was developed collaboratively with [Claude](https://claude.ai), Anthropic's AI assistant, over several sessions in early 2026.
 
-The collaboration followed a clear division of roles. The code — the Python monitoring service, the systemd configuration, the CadQuery enclosure script, the Homebridge webhook integration, the Supabase schema and RLS policies, and the GenStat iOS app specification — was written by Claude. Everything that shaped what got built was driven by the homeowner: defining the goals, asking the questions, providing hardware photographs and measurements, running commands on the Pi and reporting back the actual output, making design decisions when there were options, and pushing back when a proposed solution wasn't right.
+The collaboration followed a clear division of roles. The code — the Python monitoring service, the systemd configuration, the Supabase schema and RLS policies, and the GenStat iOS app specification — was written by Claude. Everything that shaped what got built was driven by the homeowner: defining the goals, asking the questions, providing hardware photographs and measurements, running commands on the Pi and reporting back the actual output, making design decisions when there were options, and pushing back when a proposed solution wasn't right.
 
 The project started as a simple troubleshooting session for a Kohler generator that wouldn't start. Diagnosing a 7-year-old battery failure from fault codes led naturally to the question of ongoing visibility — and that question grew into the full monitoring system documented here. At each stage the homeowner decided what mattered, Claude figured out how to build it, and the back-and-forth between those two things is what produced the result.
 
