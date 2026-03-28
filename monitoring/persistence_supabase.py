@@ -101,6 +101,17 @@ class SupabasePersistence(PersistenceBackend):
         db.mark_token_inactive(token)
 
     @staticmethod
+    def get_current_state() -> tuple[str | None, str | None]:
+        """Fetch current state and updated_at from generator_status row 1.
+
+        Returns (current_state, updated_at) or (None, None) on failure.
+        """
+        rows = db.get("generator_status", "id=eq.1&select=current_state,updated_at")
+        if rows and len(rows) > 0:
+            return rows[0].get("current_state"), rows[0].get("updated_at")
+        return None, None
+
+    @staticmethod
     def _get_current_runtime_hours() -> tuple[float, float]:
         """Fetch current runtime and exercise hours from generator_status row 1."""
         rows = db.get("generator_status", "id=eq.1&select=generator_runtime_hours,generator_exercise_hours")

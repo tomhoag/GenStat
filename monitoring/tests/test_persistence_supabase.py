@@ -180,6 +180,32 @@ class TestDirtyRetry:
         assert p._status_dirty is True
 
 
+class TestGetCurrentState:
+
+    @patch("persistence_supabase.db")
+    def test_returns_state_and_timestamp(self, mock_db):
+        mock_db.get.return_value = [
+            {"current_state": "normal", "updated_at": "2026-03-28T12:00:00+00:00"}
+        ]
+        state, updated_at = SupabasePersistence.get_current_state()
+        assert state == "normal"
+        assert updated_at == "2026-03-28T12:00:00+00:00"
+
+    @patch("persistence_supabase.db")
+    def test_returns_none_when_no_rows(self, mock_db):
+        mock_db.get.return_value = None
+        state, updated_at = SupabasePersistence.get_current_state()
+        assert state is None
+        assert updated_at is None
+
+    @patch("persistence_supabase.db")
+    def test_returns_none_when_empty_list(self, mock_db):
+        mock_db.get.return_value = []
+        state, updated_at = SupabasePersistence.get_current_state()
+        assert state is None
+        assert updated_at is None
+
+
 class TestGetCurrentRuntimeHours:
 
     @patch("persistence_supabase.db")

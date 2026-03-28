@@ -37,6 +37,8 @@ import argparse
 
 import serial
 
+from datetime import datetime, timezone
+
 from interfaces import State, STATE_MESSAGES
 from config_secrets import config
 from transfer_switch import KohlerRDTReader, MockKohlerReader, MOCK_SCENARIOS
@@ -114,8 +116,21 @@ def main():
             log.error(f"Could not open serial port: {e}")
             return
 
-    current_state      = State.UNKNOWN
-    state_entered_at   = time.time()
+    # Seed state from Supabase so a restart doesn't trigger a spurious
+    # UNKNOWN → NORMAL transition that overwrites the real updated_at.
+    current_state    = State.UNKNOWN
+    state_entered_at = time.time()
+
+    saved_state, saved_at = persistence.get_current_state()
+    if saved_state:
+        try:
+            current_state = State(saved_state)
+            if saved_at:
+                dt = datetime.fromisoformat(saved_at)
+                state_entered_at = dt.timestamp()
+            log.info(f"Resumed state from Supabase: {current_state.value}")
+        except ValueError:
+            log.warning(f"Unknown state in Supabase: {saved_state}, starting as UNKNOWN")
 
     try:
         while True:
