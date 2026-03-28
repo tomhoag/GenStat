@@ -211,9 +211,7 @@ struct GenStatSmallView: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .containerBackground(for: .widget) {
-            Color(.systemBackground)
-        }
+        .containerBackground(.background, for: .widget)
     }
 }
 
@@ -237,7 +235,7 @@ struct GenStatMediumView: View {
             VStack(alignment: .leading, spacing: 4) {
                 if let utility = entry.utilityVoltage {
                     Label {
-                        Text("\(utility, specifier: "%.0f") V")
+                        Text("\(Int(utility)) V")
                             .font(.subheadline)
                     } icon: {
                         Image(systemName: "powerplug")
@@ -247,7 +245,7 @@ struct GenStatMediumView: View {
 
                 if let generator = entry.generatorVoltage {
                     Label {
-                        Text("\(generator, specifier: "%.0f") V")
+                        Text("\(Int(generator)) V")
                             .font(.subheadline)
                     } icon: {
                         Image("generator_mini")
@@ -267,9 +265,7 @@ struct GenStatMediumView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .containerBackground(for: .widget) {
-            Color(.systemBackground)
-        }
+        .containerBackground(.background, for: .widget)
     }
 }
 

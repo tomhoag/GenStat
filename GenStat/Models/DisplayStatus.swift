@@ -41,12 +41,6 @@ enum DisplayStatus: Equatable {
     /// - Returns: The corresponding display status, defaulting to ``unknown`` when `nil`.
     static func from(_ status: GeneratorStatus?) -> DisplayStatus {
         guard let status else { return .unknown }
-        switch status.currentState {
-        case .normal:     return .ready
-        case .weeklyTest: return .exercising
-        case .outage:     return .running
-        case .critical:   return .critical
-        case .unknown:    return .unknown
-        }
+        return status.currentState.displayStatus
     }
 }

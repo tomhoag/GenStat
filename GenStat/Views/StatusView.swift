@@ -208,20 +208,6 @@ struct StatusView: View {
         return String(localized: "Last Outage \(days) Days Ago\(durationSuffix)")
     }
 
-    private func formattedDuration(_ seconds: Int) -> String {
-        let hours = seconds / 3600
-        let minutes = (seconds % 3600) / 60
-        if hours > 0 && minutes > 0 {
-            return String(localized: "\(hours)h \(minutes)m")
-        } else if hours > 0 {
-            return String(localized: "\(hours)h")
-        } else if minutes > 0 {
-            return String(localized: "\(minutes)m")
-        } else {
-            return String(localized: "\(seconds)s")
-        }
-    }
-
     private var nextServiceShort: String {
         guard let remaining = monitor.status?.hoursUntilService else {
             return String(localized: "Next Service \u{2014}")

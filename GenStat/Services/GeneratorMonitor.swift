@@ -79,6 +79,10 @@ class GeneratorMonitor {
         pollingTask = nil
     }
 
+    /// Fetches the latest generator status from the data source.
+    ///
+    /// On success, updates ``status`` and clears any previous error.
+    /// On failure, sets ``status`` to `nil` and populates ``errorMessage``.
     func refreshStatus() async {
         do {
             status = try await dataSource.fetchStatus()
@@ -91,6 +95,9 @@ class GeneratorMonitor {
         }
     }
 
+    /// Fetches the first page of events from the data source, replacing any previously loaded events.
+    ///
+    /// Updates ``hasMoreEvents`` based on whether a full page was returned.
     func refreshEvents() async {
         do {
             let fetched = try await dataSource.fetchEvents(offset: 0, limit: Self.pageSize)

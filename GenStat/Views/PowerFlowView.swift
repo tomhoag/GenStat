@@ -4,13 +4,7 @@ struct PowerFlowView: View {
     let state: GeneratorState
 
     private var displayStatus: DisplayStatus {
-        switch state {
-        case .normal:     .ready
-        case .weeklyTest: .exercising
-        case .outage:     .running
-        case .critical:   .critical
-        case .unknown:    .unknown
-        }
+        state.displayStatus
     }
 
     var body: some View {
