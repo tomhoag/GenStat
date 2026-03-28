@@ -10,7 +10,7 @@ Already have the Pi set up with the serial adapter? Here's the fastest path to r
 
 ```bash
 # 1. SSH into the Pi and pull the latest code
-ssh tomhoag@192.168.1.140
+ssh <user>@<pi-ip>
 cd ~/GenStat && git pull
 
 # 2. Install dependencies into the venv
@@ -182,11 +182,11 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/home/tomhoag/GenStat/venv/bin/python /home/tomhoag/GenStat/monitoring/generator_monitor.py
-WorkingDirectory=/home/tomhoag/GenStat/monitoring
+ExecStart=/home/<user>/GenStat/venv/bin/python /home/<user>/GenStat/monitoring/generator_monitor.py
+WorkingDirectory=/home/<user>/GenStat/monitoring
 Restart=on-failure
 RestartSec=30
-User=tomhoag
+User=<user>
 
 [Install]
 WantedBy=multi-user.target
