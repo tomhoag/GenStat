@@ -5,11 +5,20 @@
 
 set -e
 
+# Derive paths from the script's own location
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 SERVICE_NAME="generator-monitor"
-SCRIPT_PATH="/home/tomhoag/GenStat/monitoring/generator_monitor.py"
-WORKING_DIR="/home/tomhoag/GenStat/monitoring"
-RUN_AS="tomhoag"
+WORKING_DIR="$SCRIPT_DIR"
+SCRIPT_PATH="$SCRIPT_DIR/generator_monitor.py"
+VENV_DIR="$REPO_DIR/venv"
+PYTHON="$VENV_DIR/bin/python"
+SECRETS_PATH="$REPO_DIR/Secrets.xcconfig"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+
+# Determine the user who owns the repo (don't run the service as root)
+RUN_AS="$(stat -c '%U' "$REPO_DIR" 2>/dev/null || stat -f '%Su' "$REPO_DIR")"
 
 # ── Preflight checks ──────────────────────────────────────────────────────────
 
@@ -20,19 +29,15 @@ fi
 
 if [[ ! -f "$SCRIPT_PATH" ]]; then
     echo "ERROR: Script not found at $SCRIPT_PATH"
-    echo "Check that the repository is cloned to /home/tomhoag/GenStat before running this."
     exit 1
 fi
 
-SECRETS_PATH="/home/tomhoag/GenStat/Secrets.xcconfig"
 if [[ ! -f "$SECRETS_PATH" ]]; then
     echo "ERROR: Secrets.xcconfig not found at $SECRETS_PATH"
     echo "Copy Secrets.xcconfig.template to Secrets.xcconfig and fill in your Supabase credentials."
     exit 1
 fi
 
-VENV_DIR="/home/tomhoag/GenStat/venv"
-PYTHON="${VENV_DIR}/bin/python"
 if [[ ! -x "$PYTHON" ]]; then
     echo "ERROR: Virtual environment not found at ${VENV_DIR}"
     echo "Create it first:  python3 -m venv ${VENV_DIR} && ${VENV_DIR}/bin/pip install -r ${WORKING_DIR}/requirements.txt"
