@@ -24,11 +24,11 @@ _script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-APNS_ENABLED     = config.getboolean("apns", "enabled")
-APNS_KEY_PATH    = os.path.join(_script_dir, "..", f"AuthKey_{config.get('apns', 'key_id')}.p8")
-APNS_KEY_ID      = config.get("apns", "key_id")
-APNS_TEAM_ID     = config.get("apns", "team_id")
-APNS_BUNDLE_ID   = config.get("apns", "bundle_id")
+APNS_ENABLED = config.getboolean("apns", "enabled")
+APNS_KEY_PATH = os.path.join(_script_dir, "..", f"AuthKey_{config.get('apns', 'key_id')}.p8")
+APNS_KEY_ID = config.get("apns", "key_id")
+APNS_TEAM_ID = config.get("apns", "team_id")
+APNS_BUNDLE_ID = config.get("apns", "bundle_id")
 APNS_USE_SANDBOX = config.getboolean("apns", "use_sandbox")
 
 # JWT refresh interval — tokens are refreshed before APNs' 60-minute expiry

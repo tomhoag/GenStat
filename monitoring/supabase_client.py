@@ -30,8 +30,8 @@ SUPABASE_HEADERS = {
 }
 
 NETWORK_TIMEOUT = config.getint("network", "timeout")
-MAX_RETRIES     = config.getint("network", "max_retries")
-RETRY_DELAY     = config.getint("network", "retry_delay")
+MAX_RETRIES = config.getint("network", "max_retries")
+RETRY_DELAY = config.getint("network", "retry_delay")
 
 
 # ── HTTP with retry ──────────────────────────────────────────────────────────

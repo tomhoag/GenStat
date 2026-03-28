@@ -187,21 +187,24 @@ class TestGetCurrentState:
         mock_db.get.return_value = [
             {"current_state": "normal", "updated_at": "2026-03-28T12:00:00+00:00"}
         ]
-        state, updated_at = SupabasePersistence.get_current_state()
+        p = SupabasePersistence()
+        state, updated_at = p.get_current_state()
         assert state == "normal"
         assert updated_at == "2026-03-28T12:00:00+00:00"
 
     @patch("persistence_supabase.db")
     def test_returns_none_when_no_rows(self, mock_db):
         mock_db.get.return_value = None
-        state, updated_at = SupabasePersistence.get_current_state()
+        p = SupabasePersistence()
+        state, updated_at = p.get_current_state()
         assert state is None
         assert updated_at is None
 
     @patch("persistence_supabase.db")
     def test_returns_none_when_empty_list(self, mock_db):
         mock_db.get.return_value = []
-        state, updated_at = SupabasePersistence.get_current_state()
+        p = SupabasePersistence()
+        state, updated_at = p.get_current_state()
         assert state is None
         assert updated_at is None
 
@@ -213,14 +216,16 @@ class TestGetCurrentRuntimeHours:
         mock_db.get.return_value = [
             {"generator_runtime_hours": 42.5, "generator_exercise_hours": 10.25}
         ]
-        runtime, exercise = SupabasePersistence._get_current_runtime_hours()
+        p = SupabasePersistence()
+        runtime, exercise = p._get_current_runtime_hours()
         assert runtime == 42.5
         assert exercise == 10.25
 
     @patch("persistence_supabase.db")
     def test_returns_zeros_when_no_rows(self, mock_db):
         mock_db.get.return_value = None
-        runtime, exercise = SupabasePersistence._get_current_runtime_hours()
+        p = SupabasePersistence()
+        runtime, exercise = p._get_current_runtime_hours()
         assert runtime == 0.0
         assert exercise == 0.0
 
@@ -229,6 +234,7 @@ class TestGetCurrentRuntimeHours:
         mock_db.get.return_value = [
             {"generator_runtime_hours": None, "generator_exercise_hours": None}
         ]
-        runtime, exercise = SupabasePersistence._get_current_runtime_hours()
+        p = SupabasePersistence()
+        runtime, exercise = p._get_current_runtime_hours()
         assert runtime == 0.0
         assert exercise == 0.0

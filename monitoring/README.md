@@ -9,21 +9,22 @@ The monitoring service runs on a Raspberry Pi connected to your Kohler transfer 
 Already have the Pi set up with the serial adapter? Here's the fastest path to running:
 
 ```bash
-# 1. Copy files to the Pi
-scp monitoring/*.py monitoring/monitor.conf monitoring/requirements.txt \
-    tomhoag@192.168.1.140:~/GenStat/monitoring/
+# 1. SSH into the Pi and pull the latest code
+ssh tomhoag@192.168.1.140
+cd ~/GenStat && git pull
 
-# 2. SSH in and install dependencies
-pip3 install -r requirements.txt
+# 2. Install dependencies into the venv
+~/GenStat/venv/bin/pip install -r monitoring/requirements.txt
 
 # 3. Test without hardware first
-python3 generator_monitor.py --mock --scenario all_states
+cd monitoring
+~/GenStat/venv/bin/python generator_monitor.py --mock --scenario all_states
 
 # 4. Verify push notifications work
-python3 generator_monitor.py --test-push
+~/GenStat/venv/bin/python generator_monitor.py --test-push
 
-# 5. Run for real
-python3 generator_monitor.py
+# 5. Run for real (or restart the systemd service)
+sudo systemctl restart generator-monitor
 ```
 
 If the test push doesn't arrive, see [Troubleshooting](#troubleshooting) below.
@@ -45,7 +46,7 @@ State is determined by voltage readings alone — no firmware flags required.
 
 ### What happens when the state changes
 
-When the system transitions between states, three things happen:
+When the system transitions between states, two things happen:
 
 1. **The event is recorded** — a row is inserted into Supabase with the previous state, new state, voltages, and how long the previous state lasted. Generator runtime hours are accumulated automatically.
 
@@ -138,6 +139,7 @@ Normal Position
 ~/GenStat/
 ├── Secrets.xcconfig            ← Supabase credentials (manually copied)
 ├── AuthKey_Y4GY3CS3CF.p8      ← APNs signing key (manually copied)
+├── venv/                       ← Python virtual environment
 └── monitoring/
     ├── generator_monitor.py    ← entry point
     ├── monitor.conf            ← all operational settings
@@ -146,7 +148,8 @@ Normal Position
     ├── supabase_client.py
     ├── transfer_switch.py
     ├── persistence_supabase.py
-    └── notifier_apns.py
+    ├── notifier_apns.py
+    └── tests/                  ← pytest test suite
 ```
 
 ### Running
@@ -179,7 +182,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/tomhoag/GenStat/monitoring/generator_monitor.py
+ExecStart=/home/tomhoag/GenStat/venv/bin/python /home/tomhoag/GenStat/monitoring/generator_monitor.py
 WorkingDirectory=/home/tomhoag/GenStat/monitoring
 Restart=on-failure
 RestartSec=30
@@ -261,15 +264,16 @@ Check the journal: `journalctl -u generator-monitor -f`. The systemd unit is con
 monitoring/
 ├── generator_monitor.py        # Orchestrator: CLI, main loop, state machine
 ├── interfaces.py               # ABCs + shared types (State, TransferSwitchData)
-├── config_secrets.py            # Configuration and secrets loading
+├── config_secrets.py           # Configuration and secrets loading
 ├── monitor.conf                # Operational settings (serial, APNs, network)
 ├── supabase_client.py          # Shared Supabase HTTP client with retry logic
-├── transfer_switch.py           # Kohler RDT reader, mock reader, serial parsing
-├── persistence_supabase.py      # Supabase persistence backend
-├── notifier_apns.py             # APNs push notification notifier
+├── transfer_switch.py          # Kohler RDT reader, mock reader, serial parsing
+├── persistence_supabase.py     # Supabase persistence backend
+├── notifier_apns.py            # APNs push notification notifier
 ├── requirements.txt
 ├── install.sh
-└── README.md
+├── README.md
+└── tests/                      # pytest test suite
 ```
 
 ### Interfaces (`interfaces.py`)

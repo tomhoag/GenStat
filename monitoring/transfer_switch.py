@@ -22,9 +22,9 @@ log = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-SERIAL_PORT     = config.get("serial", "port")
-BAUD_RATE       = config.getint("serial", "baud_rate")
-READ_TIMEOUT    = config.getint("serial", "read_timeout")
+SERIAL_PORT = config.get("serial", "port")
+BAUD_RATE = config.getint("serial", "baud_rate")
+READ_TIMEOUT = config.getint("serial", "read_timeout")
 VOLTAGE_PRESENT = config.getint("serial", "voltage_threshold")
 
 
@@ -195,16 +195,16 @@ class MockSerial:
     cycling through the scenario list indefinitely.
     """
 
-    def __init__(self, scenario="all_states", block_delay=2):
+    def __init__(self, scenario: str = "all_states", block_delay: float = 2) -> None:
         if scenario not in MOCK_SCENARIOS:
             raise ValueError(
                 f"Unknown scenario '{scenario}'. "
                 f"Choose from: {list(MOCK_SCENARIOS.keys())}"
             )
-        self.blocks      = MOCK_SCENARIOS[scenario]
+        self.blocks = MOCK_SCENARIOS[scenario]
         self.block_delay = block_delay
-        self._block_idx  = 0
-        self._lines      = iter([])
+        self._block_idx = 0
+        self._lines = iter([])
         self._load_next_block()
         log.info(
             f"MockSerial: scenario='{scenario}', "
@@ -212,13 +212,13 @@ class MockSerial:
             f"{block_delay}s between blocks"
         )
 
-    def _load_next_block(self):
+    def _load_next_block(self) -> None:
         block = self.blocks[self._block_idx % len(self.blocks)]
         log.info(f"MockSerial: loading block {self._block_idx % len(self.blocks) + 1}/{len(self.blocks)}")
         self._block_idx += 1
         self._lines = iter(block.splitlines(keepends=True))
 
-    def readline(self):
+    def readline(self) -> bytes:
         try:
             return next(self._lines).encode("ascii")
         except StopIteration:
@@ -228,7 +228,7 @@ class MockSerial:
             # Return an empty line as a block boundary signal
             return b"\r\n"
 
-    def close(self):
+    def close(self) -> None:
         log.debug("MockSerial: closed")
 
 
@@ -298,7 +298,7 @@ def determine_state(data: TransferSwitchData) -> State:
         log.warning("Incomplete data — cannot determine state")
         return State.UNKNOWN
 
-    utility_up   = data.normal_voltage    >= VOLTAGE_PRESENT
+    utility_up = data.normal_voltage >= VOLTAGE_PRESENT
     generator_up = data.emergency_voltage >= VOLTAGE_PRESENT
 
     if utility_up and not generator_up:
@@ -319,11 +319,11 @@ def read_status_block(ser) -> list[str] | None:
     Resets when it sees a new 'Code Version' header to avoid block bleed.
     Returns a list of lines, or None on timeout.
     """
-    lines               = []
-    found_normal_v      = False
-    found_emergency_v   = False
-    found_position      = False
-    deadline            = time.time() + READ_TIMEOUT
+    lines = []
+    found_normal_v = False
+    found_emergency_v = False
+    found_position = False
+    deadline = time.time() + READ_TIMEOUT
 
     while time.time() < deadline:
         try:
@@ -337,10 +337,10 @@ def read_status_block(ser) -> list[str] | None:
             # New block starting — reset if we already have some lines
             if "Code Version" in line and lines:
                 log.debug("  new block detected, resetting buffer")
-                lines             = []
-                found_normal_v    = False
+                lines = []
+                found_normal_v = False
                 found_emergency_v = False
-                found_position    = False
+                found_position = False
 
             lines.append(line)
             log.debug(f"  rx: {line}")
@@ -371,29 +371,29 @@ def read_status_block(ser) -> list[str] | None:
 class KohlerRDTReader(TransferSwitchReader):
     """Reads from a real Kohler RDT transfer switch via RS-232."""
 
-    def __init__(self, port=SERIAL_PORT, baud=BAUD_RATE):
+    def __init__(self, port: str = SERIAL_PORT, baud: int = BAUD_RATE) -> None:
         log.info(f"Serial port: {port} @ {baud} baud")
         self._ser = serial.Serial(
-            port     = port,
-            baudrate = baud,
-            bytesize = serial.EIGHTBITS,
-            parity   = serial.PARITY_NONE,
-            stopbits = serial.STOPBITS_ONE,
-            xonxoff  = True,
-            timeout  = 5,
+            port=port,
+            baudrate=baud,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            xonxoff=True,
+            timeout=5,
         )
         log.info("Serial port opened successfully")
 
-    def read_status(self):
+    def read_status(self) -> TransferSwitchData | None:
         lines = read_status_block(self._ser)
         if lines is None:
             return None
         return parse_block(lines)
 
-    def determine_state(self, data):
+    def determine_state(self, data: TransferSwitchData) -> State:
         return determine_state(data)
 
-    def close(self):
+    def close(self) -> None:
         self._ser.close()
         log.info("Serial port closed")
 
@@ -401,18 +401,18 @@ class KohlerRDTReader(TransferSwitchReader):
 class MockKohlerReader(TransferSwitchReader):
     """Reads from a mock serial port for testing without hardware."""
 
-    def __init__(self, scenario="all_states", block_delay=2.0):
+    def __init__(self, scenario: str = "all_states", block_delay: float = 2.0) -> None:
         log.info(f"MOCK MODE — scenario: {scenario}")
         self._mock = MockSerial(scenario=scenario, block_delay=block_delay)
 
-    def read_status(self):
+    def read_status(self) -> TransferSwitchData | None:
         lines = read_status_block(self._mock)
         if lines is None:
             return None
         return parse_block(lines)
 
-    def determine_state(self, data):
+    def determine_state(self, data: TransferSwitchData) -> State:
         return determine_state(data)
 
-    def close(self):
+    def close(self) -> None:
         self._mock.close()

@@ -31,15 +31,14 @@ Run (mock mode):
 Available scenarios: normal, weekly_test, outage, critical, all_states
 """
 
-import time
-import logging
 import argparse
+import logging
+import time
+from datetime import datetime, timezone
 
 import serial
 
-from datetime import datetime, timezone
-
-from interfaces import State, STATE_MESSAGES
+from interfaces import Notifier, PersistenceBackend, State, STATE_MESSAGES, TransferSwitchData
 from config_secrets import config
 from transfer_switch import KohlerRDTReader, MockKohlerReader, MOCK_SCENARIOS
 from persistence_supabase import SupabasePersistence
@@ -63,7 +62,9 @@ POLL_INTERVAL = config.getint("monitor", "poll_interval")
 
 # ── State change handler ────────────────────────────────────────────────────
 
-def on_state_change(old_state, new_state, data, duration_seconds, persistence, notifiers):
+def on_state_change(old_state: State, new_state: State, data: TransferSwitchData,
+                    duration_seconds: int, persistence: PersistenceBackend,
+                    notifiers: list[Notifier]) -> None:
     """Called whenever the system state changes."""
     log.info(f"State change: {old_state.value} → {new_state.value} (was in {old_state.value} for {duration_seconds}s)")
 
@@ -75,7 +76,7 @@ def on_state_change(old_state, new_state, data, duration_seconds, persistence, n
 
 # ── Main loop ─────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Kohler RDT generator monitor")
     parser.add_argument(
         "--mock", action="store_true",
@@ -118,7 +119,7 @@ def main():
 
     # Seed state from Supabase so a restart doesn't trigger a spurious
     # UNKNOWN → NORMAL transition that overwrites the real updated_at.
-    current_state    = State.UNKNOWN
+    current_state = State.UNKNOWN
     state_entered_at = time.time()
 
     saved_state, saved_at = persistence.get_current_state()
@@ -151,7 +152,7 @@ def main():
             if new_state != current_state:
                 duration = int(time.time() - state_entered_at)
                 on_state_change(current_state, new_state, data, duration, persistence, notifiers)
-                current_state    = new_state
+                current_state = new_state
                 state_entered_at = time.time()
             else:
                 persistence.retry_pending_status()

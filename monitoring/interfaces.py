@@ -13,11 +13,11 @@ from enum import Enum
 
 
 class State(Enum):
-    UNKNOWN     = "unknown"
-    NORMAL      = "normal"
+    UNKNOWN = "unknown"
+    NORMAL = "normal"
     WEEKLY_TEST = "weekly_test"
-    OUTAGE      = "outage"
-    CRITICAL    = "critical"
+    OUTAGE = "outage"
+    CRITICAL = "critical"
 
 
 STATE_MESSAGES = {
@@ -32,13 +32,13 @@ class TransferSwitchData:
     """Parsed data from one status block."""
 
     def __init__(self):
-        self.normal_voltage      = None   # float, utility volts
-        self.normal_frequency    = None   # float, utility Hz
-        self.emergency_voltage   = None   # float, generator volts
-        self.emergency_frequency = None   # float, generator Hz
-        self.position            = None   # "normal" or "emergency"
-        self.exerciser_active    = False
-        self.test_mode_active    = False
+        self.normal_voltage = None       # float, utility volts
+        self.normal_frequency = None     # float, utility Hz
+        self.emergency_voltage = None    # float, generator volts
+        self.emergency_frequency = None  # float, generator Hz
+        self.position = None             # "normal" or "emergency"
+        self.exerciser_active = False
+        self.test_mode_active = False
 
     def __repr__(self):
         return (

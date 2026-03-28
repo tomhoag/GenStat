@@ -29,20 +29,20 @@ class SupabasePersistence(PersistenceBackend):
 
         # Insert event record
         event = {
-            "previous_state"   : old_state.value,
-            "new_state"        : new_state.value,
-            "utility_voltage"  : data.normal_voltage,
+            "previous_state": old_state.value,
+            "new_state": new_state.value,
+            "utility_voltage": data.normal_voltage,
             "generator_voltage": data.emergency_voltage,
-            "duration_seconds" : duration_seconds,
+            "duration_seconds": duration_seconds,
         }
         db.post("generator_events", event)
 
         # Build status update
         status: dict[str, Any] = {
-            "id"               : 1,
-            "updated_at"       : now,
-            "current_state"    : new_state.value,
-            "utility_voltage"  : data.normal_voltage,
+            "id": 1,
+            "updated_at": now,
+            "current_state": new_state.value,
+            "utility_voltage": data.normal_voltage,
             "generator_voltage": data.emergency_voltage,
         }
 
@@ -100,8 +100,7 @@ class SupabasePersistence(PersistenceBackend):
     def mark_token_inactive(self, token: str) -> None:
         db.mark_token_inactive(token)
 
-    @staticmethod
-    def get_current_state() -> tuple[str | None, str | None]:
+    def get_current_state(self) -> tuple[str | None, str | None]:
         """Fetch current state and updated_at from generator_status row 1.
 
         Returns (current_state, updated_at) or (None, None) on failure.
@@ -111,12 +110,11 @@ class SupabasePersistence(PersistenceBackend):
             return rows[0].get("current_state"), rows[0].get("updated_at")
         return None, None
 
-    @staticmethod
-    def _get_current_runtime_hours() -> tuple[float, float]:
+    def _get_current_runtime_hours(self) -> tuple[float, float]:
         """Fetch current runtime and exercise hours from generator_status row 1."""
         rows = db.get("generator_status", "id=eq.1&select=generator_runtime_hours,generator_exercise_hours")
         if rows and len(rows) > 0:
-            runtime  = float(rows[0].get("generator_runtime_hours") or 0.0)
+            runtime = float(rows[0].get("generator_runtime_hours") or 0.0)
             exercise = float(rows[0].get("generator_exercise_hours") or 0.0)
             return runtime, exercise
         return 0.0, 0.0
