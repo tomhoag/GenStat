@@ -27,3 +27,6 @@ supabase/.temp/
 
 # Internal planning
 FUTURE.md
+
+# python venv
+venv/
