@@ -1,16 +1,17 @@
 # Generator Monitoring Service
 
-The monitoring service runs on a Raspberry Pi connected to your Kohler transfer switch and watches your generator around the clock. When utility power drops, the generator kicks in, or something goes wrong, it logs the event to Supabase and sends a push notification to your phone — typically within seconds.
+The monitoring service runs on a host connected to your Kohler transfer switch and watches your generator around the clock. When utility power drops, the generator kicks in, or something goes wrong, it logs the event to Supabase and sends a push notification to your phone — typically within seconds.
+
+It can run on a **Raspberry Pi** (systemd) or on **macOS** (`launchd`) — see [Deployment](#deployment) for both.
 
 ---
 
 ## Quick Start
 
-Already have the Pi set up with the serial adapter? Here's the fastest path to running:
+Already have the host set up with the serial adapter? Here's the fastest path to running:
 
 ```bash
-# 1. SSH into the Pi and pull the latest code
-ssh <user>@<pi-ip>
+# 1. Pull the latest code (SSH in first if this is a Pi)
 cd ~/GenStat && git pull
 
 # 2. Install dependencies into the venv
@@ -23,8 +24,9 @@ cd monitoring
 # 4. Verify push notifications work
 ~/GenStat/venv/bin/python generator_monitor.py --test-push
 
-# 5. Run for real (or restart the systemd service)
-sudo systemctl restart generator-monitor
+# 5. Run for real
+#    Raspberry Pi:  sudo systemctl restart generator-monitor
+#    macOS:          sudo launchctl kickstart -k system/studio.offbyone.genstat
 ```
 
 If the test push doesn't arrive, see [Troubleshooting](#troubleshooting) below.
@@ -56,6 +58,12 @@ When the system transitions between states, two things happen:
    - **Power restored** — "Utility power is back. Check your exercise schedule."
    - Weekly test start/end is routine and doesn't notify.
 
+### Staleness watchdog
+
+If the monitor goes `stale_threshold_minutes` (default 15, see [Configuration](#configuration)) without a single successful serial read, it sends a push alert ("GenStat Not Responding") and exits. On both deployments the process supervisor (`systemd` with `Restart=on-failure`, or `launchd` with `KeepAlive`) then restarts it automatically.
+
+This exists because the supervisor alone only restarts a *crashed* process — a process that stays alive but silently stops receiving serial data (e.g. after a USB adapter reset) looks "healthy" to the supervisor indefinitely. The watchdog turns that failure mode into a normal restart-and-alert instead of a silent, unbounded outage.
+
 ---
 
 ## ⚠️ Safety Warning
@@ -73,7 +81,7 @@ When the system transitions between states, two things happen:
 
 ## Hardware
 
-The system is built around a **Raspberry Pi 2B** mounted near the transfer switch, connected to the **Kohler RDT-CFNA-0100B** via its built-in RS-232 serial port.
+The system reads from the **Kohler RDT-CFNA-0100B** via its built-in RS-232 serial port. The host at the end of the chain can be either a **Raspberry Pi** (dedicated, low-power, always-on) or a **Mac** (e.g. a Mac mini already running other services) — the serial chain itself is identical either way.
 
 ```
 Kohler RDT Transfer Switch
@@ -83,18 +91,16 @@ Kohler RDT Transfer Switch
         ↕
   FTDI USB-to-RS232 adapter (DB9 male, FTDI chipset)
         ↕  USB
-  Raspberry Pi 2B
-  /dev/ttyUSB0
+  Host (Raspberry Pi or Mac)
+  /dev/ttyUSB0 (Linux)  or  /dev/cu.usbserial-XXXX (macOS)
 ```
 
-The chain has four components between the transfer switch and the Pi:
+The chain has four components between the transfer switch and the host:
 
 1. **Flat ribbon cable** — a DB9 male-to-female cable that routes from the P7 connector on the MPAC 500 board out through a gap in the transfer switch enclosure. This gets the serial signal outside the panel without permanent modification.
 2. **Null modem adapter** — a DB9 crossover that swaps the TX and RX lines. The RDT's serial port is wired as DTE (like a computer), and so is the FTDI adapter — without the null modem, they'd both be transmitting on the same pin and listening on the same pin. The crossover fixes this.
 3. **FTDI USB-to-RS232 adapter** — converts the RS-232 signal levels to USB. Handles level conversion internally, so no separate MAX232 or GPIO wiring is needed.
-4. **USB to the Pi** — the FTDI adapter shows up as `/dev/ttyUSB0`.
-
-The same chain (minus the Pi) can be plugged into a Mac for initial verification of the serial data format before deploying.
+4. **USB to the host** — the FTDI adapter shows up as `/dev/ttyUSB0` on Linux, or `/dev/cu.usbserial-<serial>` on macOS. The macOS device name is tied to the specific adapter and can change if a different FTDI adapter is used — check `ls /dev/cu.*` and update `monitor.conf` if so.
 
 > For full transfer switch documentation see the [Kohler RDT Manual (TP-6346)](http://www.fireelectronics.com/docs/Kohler%20Literature/lit/tp6346.pdf).
 
@@ -125,7 +131,7 @@ Normal Position
 
 - Python 3.9+
 - `pyserial`, `httpx[http2]`, `PyJWT[crypto]` (see `requirements.txt`)
-- Raspberry Pi with USB serial adapter, or `--mock` mode for development without hardware
+- A host with a USB serial adapter — a Raspberry Pi, a Mac, or any always-on machine — or `--mock` mode for development without hardware
 - APNs signing key (`.p8` file) in the project root for push notifications
 - A configured `Secrets.xcconfig` with Supabase credentials — see the [root README](../README.md#setup)
 
@@ -133,7 +139,7 @@ Normal Position
 
 ## Deployment
 
-### File layout on the Pi
+### File layout (both platforms)
 
 ```
 ~/GenStat/
@@ -152,7 +158,7 @@ Normal Position
     └── tests/                  ← pytest test suite
 ```
 
-### Running
+### Running directly (either platform)
 
 ```bash
 # Real hardware
@@ -169,9 +175,53 @@ python3 generator_monitor.py --test-push
 
 Available mock scenarios: `normal`, `weekly_test`, `outage`, `critical`, `all_states`
 
-### Running as a systemd service
+### macOS (`launchd`) — current deployment
 
-To start automatically on boot and restart on failure:
+Runs as a `LaunchDaemon` so it starts at boot and restarts automatically (`KeepAlive`) if it ever exits — including exits triggered by the staleness watchdog.
+
+```xml
+<!-- /Library/LaunchDaemons/studio.offbyone.genstat.plist -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+        <string>studio.offbyone.genstat</string>
+    <key>ProgramArguments</key>
+        <array>
+            <string>/Users/<user>/GenStat/venv/bin/python</string>
+            <string>/Users/<user>/GenStat/monitoring/generator_monitor.py</string>
+        </array>
+    <key>WorkingDirectory</key>
+        <string>/Users/<user>/GenStat/monitoring</string>
+    <key>UserName</key>
+        <string><user></string>
+    <key>RunAtLoad</key>
+        <true/>
+    <key>KeepAlive</key>
+        <true/>
+    <key>StandardOutPath</key>
+        <string>/Users/<user>/GenStat/monitoring/genstat.log</string>
+    <key>StandardErrorPath</key>
+        <string>/Users/<user>/GenStat/monitoring/genstat.log</string>
+</dict>
+</plist>
+```
+
+```bash
+sudo launchctl bootstrap system /Library/LaunchDaemons/studio.offbyone.genstat.plist
+sudo launchctl kickstart -k system/studio.offbyone.genstat
+
+# Check it's running
+launchctl list | grep offbyone
+tail -f /Users/<user>/GenStat/monitoring/genstat.log
+```
+
+To restart after a code change, always use `launchctl kickstart -k` rather than manually `kill`-ing and re-launching the process by hand — a manually started process and the daemon's own respawned copy can end up running simultaneously and fighting over the serial port (`"device reports readiness to read but returned no data (device disconnected or multiple access on port?)"` in the log is the symptom).
+
+### Raspberry Pi (`systemd`) — legacy / alternative
+
+The original deployment target, still supported for anyone running this on a dedicated Pi rather than a general-purpose Mac.
 
 ```ini
 # /etc/systemd/system/generator-monitor.service
@@ -201,6 +251,8 @@ sudo systemctl start generator-monitor
 sudo systemctl status generator-monitor
 ```
 
+`install.sh` automates writing and enabling this unit — run it once as root on a fresh Pi (`sudo bash install.sh`).
+
 ---
 
 ## Configuration
@@ -216,6 +268,7 @@ voltage_threshold = 90
 
 [monitor]
 poll_interval = 35
+stale_threshold_minutes = 15
 
 [apns]
 enabled = true
@@ -230,14 +283,35 @@ max_retries = 3
 retry_delay = 2
 ```
 
+- **`serial.port`** — `/dev/ttyUSB0` on a Pi; on macOS this is a `/dev/cu.usbserial-XXXX` path that's specific to the physical adapter (check `ls /dev/cu.*`).
+- **`monitor.stale_threshold_minutes`** — how long the monitor can go without a successful serial read before it alerts and restarts itself (see [Staleness watchdog](#staleness-watchdog)). Omitting this key defaults to 15.
+
 Credentials (Supabase URL and API key) are stored separately in `Secrets.xcconfig` in the project root — see the [root README](../README.md#setup) for details.
+
+---
+
+## Displaying Status on iPhone
+
+Two ways to see current status on your phone:
+
+1. **The Xcode iOS app** — full native UI, reads the same `generator_status` table. If it's not published to the App Store, a free-tier ("personal team") signature expires after 7 days and needs reinstalling via cable; a paid Apple Developer account + TestFlight avoids that entirely.
+2. **`scriptable/GenStat.js`** — a [Scriptable](https://apps.apple.com/us/app/scriptable/id1405459188) (free) Home Screen widget that fetches `generator_status` directly via the Supabase REST API using the publishable/anon key. No Xcode, no signing, no expiry — just paste the script into the Scriptable app and add it as a widget. Good lightweight alternative while the native app is unpublished.
 
 ---
 
 ## Troubleshooting
 
-**Serial port not found (`/dev/ttyUSB0`)**
-The FTDI adapter may have been assigned a different device name. Run `ls /dev/ttyUSB*` to find it, then update `monitor.conf`.
+**Serial port not found**
+The FTDI adapter may have been assigned a different device name. On a Pi, run `ls /dev/ttyUSB*`; on macOS run `ls /dev/cu.usbserial-*`. Update `monitor.conf` with whatever it finds.
+
+**Log shows "No data received" indefinitely, but the process never restarts**
+This was a real failure mode before the staleness watchdog was added — `KeepAlive`/`Restart=on-failure` only restart a process that actually exits, and a process stuck retrying a dead serial connection never does. Make sure you're running a version of `generator_monitor.py` with the watchdog (check for `STALE_THRESHOLD_MINUTES` near the top of the file); if it's there and you still see this, `stale_threshold_minutes` may be set unexpectedly high in `monitor.conf`.
+
+**Log shows `"device reports readiness to read but returned no data (device disconnected or multiple access on port?)"`**
+Two processes are both holding the serial port open — almost always caused by manually starting the script (`nohup`/foreground) while the supervisor (`launchd`/`systemd`) is also running its own copy. Check for duplicates with `ps aux | grep generator_monitor`, kill the stray one, and use the supervisor's own restart command (`launchctl kickstart -k ...` or `systemctl restart ...`) instead of manual `kill`+relaunch going forward.
+
+**Supabase errors like `[Errno 8] nodename nor servname provided, or not known`**
+This is a DNS resolution failure for the Supabase hostname, not a credentials problem. A common cause on the free tier: the project auto-pauses after a period of no API activity (which can happen if the monitor itself was silently down for a while — see the watchdog above) and a paused project's subdomain stops resolving. Check the project's status in the Supabase dashboard and un-pause it if needed; DNS can take a minute or two to come back after resuming.
 
 **No push notification received**
 Run `python3 generator_monitor.py --test-push` and check the output. Common causes:
@@ -249,7 +323,8 @@ Run `python3 generator_monitor.py --test-push` and check the output. Common caus
 Verify `Secrets.xcconfig` has the correct URL and key. The service retries transient network failures automatically (configurable via `[network]` in `monitor.conf`), but persistent auth errors mean the credentials are wrong.
 
 **Service crashes and restarts**
-Check the journal: `journalctl -u generator-monitor -f`. The systemd unit is configured to restart on failure with a 30-second delay.
+- Raspberry Pi: check the journal with `journalctl -u generator-monitor -f`.
+- macOS: check the log directly with `tail -f monitoring/genstat.log`, and confirm the daemon is loaded with `launchctl list | grep offbyone`.
 
 ---
 
@@ -262,18 +337,21 @@ Check the journal: `journalctl -u generator-monitor -f`. The systemd unit is con
 
 ```
 monitoring/
-├── generator_monitor.py        # Orchestrator: CLI, main loop, state machine
+├── generator_monitor.py        # Orchestrator: CLI, main loop, state machine, staleness watchdog
 ├── interfaces.py               # ABCs + shared types (State, TransferSwitchData)
 ├── config_secrets.py           # Configuration and secrets loading
-├── monitor.conf                # Operational settings (serial, APNs, network)
+├── monitor.conf                # Operational settings (serial, APNs, network, staleness)
 ├── supabase_client.py          # Shared Supabase HTTP client with retry logic
 ├── transfer_switch.py          # Kohler RDT reader, mock reader, serial parsing
 ├── persistence_supabase.py     # Supabase persistence backend
 ├── notifier_apns.py            # APNs push notification notifier
 ├── requirements.txt
-├── install.sh
+├── install.sh                  # Raspberry Pi / systemd installer
 ├── README.md
 └── tests/                      # pytest test suite
+
+scriptable/
+└── GenStat.js                  # iPhone Home Screen widget (Scriptable app)
 ```
 
 ### Interfaces (`interfaces.py`)
@@ -292,6 +370,7 @@ Three abstract base classes define the contract between layers:
 
 **`Notifier`** — sends notifications on state transitions
 - `notify_state_change(old_state, new_state, data)`
+- `notify_stale(minutes_since_last_read)` — sent by the staleness watchdog before it restarts the process
 
 Each notifier implements its own policy for which transitions warrant a notification. Notifiers that need device tokens (e.g., `APNsNotifier`) receive the `PersistenceBackend` via constructor injection rather than accessing the database directly.
 
@@ -309,7 +388,7 @@ Each notifier implements its own policy for which transitions warrant a notifica
 **`supabase_client.py`** provides the shared Supabase HTTP access layer with `post()`, `upsert()`, `get()`, `patch()` operations and exponential backoff retry on transient network failures. Both `SupabasePersistence` and device token management use this single client.
 
 **`config_secrets.py`** loads two configuration sources:
-- `monitor.conf` — operational settings (serial port, APNs, network retry parameters)
+- `monitor.conf` — operational settings (serial port, APNs, network retry parameters, staleness threshold)
 - `Secrets.xcconfig` — credentials for Supabase (gitignored)
 
 ### Extending
