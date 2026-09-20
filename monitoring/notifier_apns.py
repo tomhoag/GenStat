@@ -140,6 +140,16 @@ class APNsNotifier(Notifier):
                 priority="5",
             )
 
+    def notify_stale(self, minutes_since_last_read: int) -> None:
+        """Send push notification when no serial data has been received in a while."""
+        self._send(
+            "GenStat Not Responding",
+            f"No data received from the generator transfer switch in "
+            f"{minutes_since_last_read} minutes. The monitor is restarting itself — "
+            f"check the serial/USB connection if this keeps happening.",
+            priority="10",
+        )
+
     def test_push(self) -> None:
         """Send a test push notification with verbose logging."""
         log.info("=== APNs Test Push ===")

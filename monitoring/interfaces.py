@@ -102,3 +102,8 @@ class Notifier(ABC):
                             data: TransferSwitchData) -> None:
         """Send notification appropriate for this state transition."""
         ...
+
+    @abstractmethod
+    def notify_stale(self, minutes_since_last_read: int) -> None:
+        """Send notification that no successful serial read has happened in a while."""
+        ...

@@ -20,6 +20,12 @@ Notifications:
   Push notifications are sent directly to iOS devices via APNs HTTP/2
   using httpx + PyJWT. The .p8 signing key must be in the project root.
 
+Staleness watchdog:
+  If no successful serial read happens for `stale_threshold_minutes`
+  (monitor.conf, default 15), the monitor sends an APNs alert and exits.
+  launchd's KeepAlive then restarts it — this catches the "process alive
+  but serial silently dead" failure mode that KeepAlive alone misses.
+
 Run (real hardware):
   python3 generator_monitor.py
 
@@ -58,6 +64,13 @@ log = logging.getLogger(__name__)
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 POLL_INTERVAL = config.getint("monitor", "poll_interval")
+
+# How long the monitor can go without a successful serial read before it
+# alerts and restarts itself. Add `stale_threshold_minutes = 15` under
+# [monitor] in monitor.conf to override; defaults to 15 if not set.
+STALE_THRESHOLD_MINUTES = config.getint(
+    "monitor", "stale_threshold_minutes", fallback=15
+)
 
 
 # ── State change handler ────────────────────────────────────────────────────
@@ -133,6 +146,13 @@ def main() -> None:
         except ValueError:
             log.warning(f"Unknown state in Supabase: {saved_state}, starting as UNKNOWN")
 
+    # Staleness watchdog: tracks the last time we successfully parsed a
+    # status block. Reset to "now" at startup so a monitor that comes up
+    # with hardware already broken still gets a bounded grace period
+    # before it alerts, rather than alerting instantly on every restart.
+    last_successful_read = time.time()
+    stale_alert_sent = False
+
     try:
         while True:
             log.info("Waiting for status block...")
@@ -140,11 +160,26 @@ def main() -> None:
 
             if data is None:
                 log.warning("No data received — check serial connection")
+
+                stale_for = time.time() - last_successful_read
+                if stale_for >= STALE_THRESHOLD_MINUTES * 60 and not stale_alert_sent:
+                    stale_minutes = int(stale_for // 60)
+                    log.error(
+                        f"No successful serial read in {stale_minutes} minutes — "
+                        f"alerting and restarting"
+                    )
+                    for notifier in notifiers:
+                        notifier.notify_stale(stale_minutes)
+                    stale_alert_sent = True
+                    break  # fall through to finally; launchd's KeepAlive restarts us
+
                 if not args.mock:
                     time.sleep(POLL_INTERVAL)
                 continue
 
             log.info(f"Parsed: {data}")
+            last_successful_read = time.time()
+            stale_alert_sent = False
 
             new_state = reader.determine_state(data)
             log.info(f"State: {new_state.value} — {STATE_MESSAGES.get(new_state, '')}")
