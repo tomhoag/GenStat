@@ -30,3 +30,5 @@ FUTURE.md
 
 # python venv
 venv/
+monitoring/genstat.log
+monitoring/__pycache__/
