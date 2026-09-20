@@ -3,7 +3,7 @@
 <div>
 <img src="hero.png" alt="GenStat App Icon" width="200" height="150" align="left" hspace="16" vspace="4">
 
-A complete home generator monitoring system: a Raspberry Pi reads real-time data from a Kohler transfer switch over RS-232 and publishes state changes to Supabase. A SwiftUI iPhone app displays the current status, runtime history, and event log, and dynamically changes its icon to reflect the generator state. The system sends APNs push notifications for outages and critical events, and includes Home Screen and Lock Screen widgets for at-a-glance status.
+A complete home generator monitoring system: a monitoring service (running on a Raspberry Pi or a Mac) reads real-time data from a Kohler transfer switch over RS-232 and publishes state changes to Supabase. A SwiftUI iPhone app displays the current status, runtime history, and event log, and dynamically changes its icon to reflect the generator state. The system sends APNs push notifications for outages and critical events, and includes Home Screen and Lock Screen widgets for at-a-glance status.
 
 <br clear="both">
 </div>
@@ -21,7 +21,7 @@ This creates several blind spots:
 - **No outage history** — The transfer switch has no accessible log. There is no way to know when the last outage occurred, how long it lasted, or how many hours the generator has accumulated.
 - **Maintenance timing** — Generator manufacturers recommend service intervals based on runtime hours, but tracking those hours manually against a machine that runs for 20 minutes a week is impractical.
 
-GenStat solves this by providing at-a-glance visibility into the operational state of the system. The monitoring service on the Raspberry Pi determines the current state from live voltage readings and publishes every state change to Supabase. The iOS app reads the Supabase database, presents the information in a clear, glanceable format, dynamically changes its app icon to reflect the current generator state, and sends push notifications when the generator enters a critical state or when an outage begins or ends. Home Screen and Lock Screen widgets provide persistent status visibility without opening the app.
+GenStat solves this by providing at-a-glance visibility into the operational state of the system. The monitoring service determines the current state from live voltage readings and publishes every state change to Supabase. The iOS app reads the Supabase database, presents the information in a clear, glanceable format, dynamically changes its app icon to reflect the current generator state, and sends push notifications when the generator enters a critical state or when an outage begins or ends. Home Screen and Lock Screen widgets provide persistent status visibility without opening the app.
 
 The system catches all four meaningful states:
 
@@ -31,6 +31,8 @@ The system catches all four meaningful states:
 | **Weekly Test** | Generator running its exercise cycle — both voltages present |
 | **Outage** | Utility power lost, generator supplying the house |
 | **Critical** | Utility power lost AND generator not running — immediate attention required |
+
+The monitoring service also watches itself: if it goes too long without a successful reading from the transfer switch, it alerts and restarts automatically rather than failing silently — see [monitoring/README.md](monitoring/README.md#staleness-watchdog).
 
 ---
 
@@ -62,16 +64,18 @@ GenStat/                              ← repo root
 │   └── README.md
 ├── GenStatWidget/                    # WidgetKit extension — Home Screen and Lock Screen widgets
 ├── GenStatTests/                     # Swift Testing unit tests
-├── monitoring/                       # Raspberry Pi monitoring service (see monitoring/README.md)
+├── monitoring/                       # Generator monitoring service — Raspberry Pi or macOS (see monitoring/README.md)
 │   ├── generator_monitor.py
 │   ├── install.sh
 │   ├── requirements.txt
 │   └── README.md
+├── scriptable/                       # iPhone Home Screen widget script (Scriptable app)
+│   └── GenStat.js
 └── supabase/
     └── schema.sql                    # Database table definitions and RLS policies
 ```
 
-> **Note:** All paths shown above reflect the expected repository structure. Verify that actual paths on your Raspberry Pi deployment match before running the monitoring service or install script.
+> **Note:** All paths shown above reflect the expected repository structure. Verify that actual paths on your deployment match before running the monitoring service or install script.
 
 ---
 
@@ -92,16 +96,19 @@ SUPABASE_URL = https://your-project.supabase.co
 SUPABASE_KEY = sb_publishable_...
 ```
 
-> **Note:** `Secrets.xcconfig` must never be committed to the repository. It is listed in `.gitignore`. Each developer and each deployment (including the Raspberry Pi) must have its own copy.
+> **Note:** `Secrets.xcconfig` must never be committed to the repository. It is listed in `.gitignore`. Each developer and each deployment (including the monitoring host) must have its own copy.
 
 ### 2. Set up Supabase
 
 Create a [Supabase](https://supabase.com) project and set up the three tables described in the [Database Schema](#database-schema) section below. The complete SQL for all tables, indexes, triggers, and RLS policies is provided in [`supabase/schema.sql`](supabase/schema.sql) — run it in the Supabase SQL editor to set up the entire schema at once.
 
+> **Note:** Free-tier Supabase projects auto-pause after a period of no API activity, and a paused project's endpoint stops resolving until you un-pause it from the dashboard. Worth knowing if the monitoring service or app suddenly can't reach Supabase after a long period of inactivity.
+
 ### 3. Component-specific setup
 
 - **iOS app** — See [GenStat/README.md](GenStat/README.md) for Xcode build instructions
-- **Monitoring service** — See [monitoring/README.md](monitoring/README.md) for Raspberry Pi deployment
+- **Monitoring service** — See [monitoring/README.md](monitoring/README.md) for deployment on a Raspberry Pi (systemd) or a Mac (`launchd`)
+- **Scriptable widget** — An alternative, lightweight way to see status on your iPhone Home Screen without installing the iOS app — see [monitoring/README.md](monitoring/README.md#displaying-status-on-iphone)
 
 ---
 
@@ -163,6 +170,7 @@ All tables use Row Level Security with policies allowing anonymous read access (
 - **Extended telemetry** — Connect to the generator controller's Modbus interface to monitor battery voltage, coolant temperature, oil pressure, and RPM, in addition to the transfer switch data currently collected
 - **Multiple generators** — Support monitoring more than one generator from a single app instance
 - **Localization** — Add string catalog entries for all user-facing text
+- **TestFlight distribution** — Move the iOS app to TestFlight so installs don't expire and require reinstalling via cable
 
 ---
 
@@ -176,7 +184,7 @@ All tables use Row Level Security with policies allowing anonymous read access (
 
 This project was developed collaboratively with [Claude](https://claude.ai), Anthropic's AI assistant, over several sessions in early 2026.
 
-The collaboration followed a clear division of roles. The code — the Python monitoring service, the systemd configuration, the Supabase schema and RLS policies, and the GenStat iOS app specification — was written by Claude. Everything that shaped what got built was driven by the homeowner: defining the goals, asking the questions, providing hardware photographs and measurements, running commands on the Pi and reporting back the actual output, making design decisions when there were options, and pushing back when a proposed solution wasn't right.
+The collaboration followed a clear division of roles. The code — the Python monitoring service, the systemd and launchd configuration, the Supabase schema and RLS policies, and the GenStat iOS app specification — was written by Claude. Everything that shaped what got built was driven by the homeowner: defining the goals, asking the questions, providing hardware photographs and measurements, running commands on the monitoring host and reporting back the actual output, making design decisions when there were options, and pushing back when a proposed solution wasn't right.
 
 The project started as a simple troubleshooting session for a Kohler generator that wouldn't start. Diagnosing a 7-year-old battery failure from fault codes led naturally to the question of ongoing visibility — and that question grew into the full monitoring system documented here. At each stage the homeowner decided what mattered, Claude figured out how to build it, and the back-and-forth between those two things is what produced the result.
 
